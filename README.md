@@ -71,6 +71,8 @@ Web 应用的环境变量位于 `apps/web/.env` 和 `apps/web/.env.prod`。
 | `VITE_API_PROXY_TARGET` | 后端 API 代理地址 | `http://localhost:3001` |
 | `VITE_DEV_PORT` | 开发服务端口 | `5173` |
 
+Docker 与 Jenkins 部署见 [docker/README.md](./docker/README.md)。
+
 ## Web 应用能力
 
 - 登录页：用户名、密码、验证码
