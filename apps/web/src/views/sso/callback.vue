@@ -8,7 +8,6 @@
 		SSO_REDIRECT_KEY,
 		SSO_STATE_KEY,
 		buildSsoCallbackUrl,
-		buildSsoLogoutUrl,
 		exchangeAuthCode,
 		sanitizeRedirectTarget,
 		validateIdTokenNonce,
@@ -29,11 +28,6 @@
 		const expectedState = sessionStorage.getItem(SSO_STATE_KEY) ?? ''
 		sessionStorage.removeItem(SSO_STATE_KEY)
 		return Boolean(expectedState) && Boolean(returnedState) && returnedState === expectedState
-	}
-
-	/** 失败后重新发起统一登录。 */
-	const retryLogin = async (): Promise<void> => {
-		window.location.href = await buildSsoLogoutUrl(redirectTarget.value || '/')
 	}
 
 	/** 处理统一登录回调。 */
