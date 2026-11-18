@@ -1,0 +1,1353 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>jianwei1 / dt-monitor 项目阅读手册</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #64748b;
+      --line: #e5eaf2;
+      --brand: #1d4ed8;
+      --brand-2: #0f766e;
+      --brand-3: #b45309;
+      --danger: #b91c1c;
+      --shadow: 0 10px 30px rgba(15, 23, 42, .06);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", Arial, sans-serif;
+      font-size: 14.5px;
+      line-height: 1.75;
+    }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, pre, .mono { font-family: "Cascadia Code", Consolas, "SFMono-Regular", Menlo, monospace; }
+    code {
+      background: #eef2f7;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 1px 5px;
+      font-size: .92em;
+      color: #0f172a;
+      overflow-wrap: anywhere;
+    }
+    pre {
+      margin: 0;
+      padding: 16px 18px;
+      background: #0f172a;
+      color: #dbeafe;
+      border-radius: 12px;
+      overflow: auto;
+      font-size: 12.5px;
+      line-height: 1.65;
+    }
+    pre code { background: none; border: 0; padding: 0; color: inherit; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 26px;
+      background: rgba(255,255,255,.88);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .topbar .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .2px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.14); }
+    .topbar .meta { color: var(--muted); font-size: 12.5px; }
+    .topbar button, .btn {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #1e293b;
+      border-radius: 9px;
+      padding: 7px 12px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 12.5px;
+    }
+    .topbar button:hover, .btn:hover { background: #f8fafc; }
+
+    .shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); gap: 0; }
+    .sidebar {
+      position: sticky;
+      top: 57px;
+      align-self: start;
+      height: calc(100vh - 57px);
+      overflow: auto;
+      padding: 22px 16px 40px 22px;
+      border-right: 1px solid var(--line);
+    }
+    .sidebar .label {
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin: 0 0 8px 10px;
+    }
+    .toc { display: flex; flex-direction: column; gap: 2px; }
+    .toc a {
+      color: #475569;
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      border-left: 2px solid transparent;
+    }
+    .toc a:hover { background: #eef2f7; text-decoration: none; }
+    .toc a.active { background: #e8efff; color: var(--brand); border-left-color: var(--brand); font-weight: 600; }
+
+    main { min-width: 0; padding: 26px 34px 80px; }
+    .wrap { max-width: 1180px; margin: 0 auto; }
+    section { scroll-margin-top: 76px; margin: 0 0 34px; }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 22px;
+      letter-spacing: -.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 .no {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #e8efff;
+      color: var(--brand);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    h3 { margin: 22px 0 10px; font-size: 16.5px; }
+    h4 { margin: 0 0 6px; font-size: 14px; }
+    p { margin: 8px 0; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12.5px; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 34px 36px 28px;
+      border-radius: 20px;
+      background:
+        radial-gradient(700px 260px at 88% 10%, rgba(56,189,248,.22), transparent 62%),
+        radial-gradient(600px 260px at 10% 100%, rgba(34,197,94,.13), transparent 60%),
+        linear-gradient(135deg, #0b1f4b 0%, #12326e 55%, #0d3b66 100%);
+      color: #fff;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, .18);
+    }
+    .hero .eyebrow { color: #93c5fd; font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase; }
+    .hero h1 { margin: 10px 0 8px; font-size: 34px; line-height: 1.18; letter-spacing: -.03em; }
+    .hero h1 span { color: #bfdbfe; font-weight: 500; }
+    .hero p { max-width: 880px; color: #dbeafe; font-size: 14px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .hero-actions .btn { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.22); color: #fff; }
+    .hero-actions .btn:hover { background: rgba(255,255,255,.18); }
+    .hero-actions .btn.primary { background: #fff; color: #12326e; border-color: #fff; font-weight: 700; }
+    .hero-stats { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; margin-top: 22px; }
+    .hero-stat { padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); }
+    .hero-stat b { display: block; font-size: 19px; line-height: 1.2; }
+    .hero-stat span { color: #bfdbfe; font-size: 11.5px; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px 22px;
+    }
+    .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+    .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+
+    .callout { border-radius: 12px; padding: 14px 16px; margin: 14px 0; border: 1px solid; }
+    .callout.info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .callout.warn { background: #fffbeb; border-color: #fde68a; color: #78350f; }
+    .callout.danger { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+    .callout.ok { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .callout strong { font-weight: 800; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .badge.done { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+    .badge.partial { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .badge.todo { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+    .badge.fix { background: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
+    .badge.plan { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #eef2f7; vertical-align: top; text-align: left; }
+    th { background: #f8fafc; color: #475569; font-size: 12px; letter-spacing: .02em; position: sticky; top: 0; z-index: 1; }
+    tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #f8fbff; }
+    td.nowrap, th.nowrap { white-space: nowrap; }
+
+    .kpi { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+    .kpi .ico { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: #eef2ff; color: #3730a3; font-weight: 800; flex: none; }
+    .kpi b { display: block; font-size: 13px; }
+    .kpi span { color: var(--muted); font-size: 12px; }
+
+    .tree {
+      background: #0f172a;
+      color: #dbeafe;
+      border-radius: 14px;
+      padding: 18px 20px;
+      font-size: 12.5px;
+      line-height: 1.7;
+      overflow: auto;
+    }
+    .tree .c { color: #93c5fd; }
+    .tree .g { color: #86efac; }
+    .tree .y { color: #fde68a; }
+
+    .stage { position: relative; padding: 0 0 0 54px; margin: 0 0 18px; }
+    .stage:before { content: ""; position: absolute; left: 21px; top: 38px; bottom: -18px; width: 2px; background: #dbe3ef; }
+    .stage:last-child:before { display: none; }
+    .stage .num {
+      position: absolute; left: 0; top: 2px; width: 42px; height: 42px; border-radius: 12px;
+      display: grid; place-items: center; background: #12326e; color: #fff; font-weight: 800; font-size: 13px;
+      box-shadow: 0 8px 16px rgba(18,50,110,.18);
+    }
+    .stage .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+    .stage .head h3 { margin: 0; }
+    .stage .time { color: var(--muted); font-size: 12px; }
+    .stage .card { margin-top: 10px; }
+    .read-list { margin: 10px 0 0; padding-left: 18px; }
+    .read-list li { margin: 6px 0; }
+    .read-list code { font-size: 12px; }
+    .question { margin-top: 10px; padding: 10px 12px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; color: #475569; font-size: 12.5px; }
+
+    .flow { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; align-items: stretch; }
+    .flow-card { position: relative; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px; box-shadow: var(--shadow); }
+    .flow-card .n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; background: #e8efff; color: #1d4ed8; font-weight: 800; font-size: 12px; margin-bottom: 8px; }
+    .flow-card h4 { margin: 0 0 5px; }
+    .flow-card p { margin: 0; color: #475569; font-size: 12.5px; line-height: 1.6; }
+    .flow-card code { font-size: 11px; }
+    .flow-card:not(:last-child):after { content: "→"; position: absolute; right: -9px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 18px; background: var(--bg); padding: 2px; }
+
+    .todo-card { border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 16px 18px; box-shadow: var(--shadow); border-top: 4px solid #cbd5e1; }
+    .todo-card.p0 { border-top-color: #dc2626; }
+    .todo-card.p1 { border-top-color: #d97706; }
+    .todo-card.p2 { border-top-color: #64748b; }
+    .todo-card .top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .todo-card h4 { margin: 0; font-size: 15px; }
+    .todo-card .why { color: #475569; font-size: 13px; margin: 8px 0; }
+    .todo-card .evidence { font-size: 12px; color: #64748b; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 9px; padding: 8px 10px; }
+    .todo-card .accept { margin-top: 8px; font-size: 12.5px; color: #334155; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11.5px; }
+
+    .svg-wrap { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 10px; box-shadow: var(--shadow); overflow: auto; }
+    .svg-wrap svg { width: 100%; min-width: 960px; height: auto; display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 10px 4px 0; color: #64748b; font-size: 12px; }
+    .legend i { display: inline-block; width: 26px; height: 0; border-top: 3px solid #94a3b8; margin-right: 6px; vertical-align: middle; }
+    .legend i.dash { border-top-style: dashed; }
+
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+    .filter-bar button {
+      border: 1px solid #dbe3ef;
+      background: #fff;
+      color: #475569;
+      border-radius: 999px;
+      padding: 5px 12px;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .filter-bar button:hover { background: #f8fafc; }
+    .filter-bar button.active { background: #12326e; border-color: #12326e; color: #fff; font-weight: 700; }
+    tr[hidden] { display: none; }
+
+    details { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 12px 16px; margin: 10px 0; }
+    details summary { cursor: pointer; font-weight: 700; color: #1e293b; }
+    details[open] summary { margin-bottom: 8px; }
+
+    .footer { color: #94a3b8; font-size: 12px; text-align: center; padding: 22px 0 0; }
+
+    @media (max-width: 1100px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      main { padding: 20px 18px 60px; }
+      .hero-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .grid4 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .flow { grid-template-columns: 1fr; }
+      .flow-card:not(:last-child):after { content: "↓"; right: 50%; top: auto; bottom: -15px; transform: translateX(50%); }
+    }
+    @media (max-width: 720px) {
+      .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
+      .hero { padding: 24px 20px; }
+      .hero h1 { font-size: 27px; }
+      .topbar .meta { display: none; }
+    }
+    @media print {
+      body { background: #fff; font-size: 11.5px; }
+      .topbar, .sidebar, .hero-actions, .filter-bar, .btn { display: none !important; }
+      .shell { display: block; }
+      main { padding: 0; }
+      .wrap { max-width: none; }
+      .hero { box-shadow: none; border-radius: 0; }
+      .card, .todo-card, .flow-card, .svg-wrap { box-shadow: none; break-inside: avoid; }
+      section { break-inside: auto; }
+      a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> jianwei1 / dt-monitor 阅读手册</div>
+    <div class="meta">代码基准：main · 2026-11-18 · 单文件离线可读</div>
+    <button onclick="window.print()">打印 / 存为 PDF</button>
+  </div>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="label">目录</div>
+      <nav class="toc" id="toc">
+        <a href="#facts">0. 读前必读</a>
+        <a href="#overview">1. 项目定位</a>
+        <a href="#stack">2. 技术栈</a>
+        <a href="#architecture">3. 架构图</a>
+        <a href="#flow">4. 核心链路</a>
+        <a href="#modules">5. 模块地图</a>
+        <a href="#api">6. API 与权限</a>
+        <a href="#data">7. 数据模型</a>
+        <a href="#reading">8. 代码阅读顺序</a>
+        <a href="#status">9. 功能状态矩阵</a>
+        <a href="#todo">10. 未实现清单</a>
+        <a href="#docs">11. 文档待修正</a>
+        <a href="#run">12. 运行与验证</a>
+        <a href="#routes">13. 推荐路线</a>
+      </nav>
+    </aside>
+
+    <main>
+      <div class="wrap">
+        <div class="hero">
+          <div class="eyebrow">READING GUIDE · DT-MONITOR</div>
+          <h1>jianwei1 / dt-monitor<br /><span>项目阅读手册</span></h1>
+          <p>
+            这不是一个“只有登录页的启动模板”，而是一套已经可以本地端到端演示的浏览器可观测平台：
+            SDK 采集错误 / 性能 / 埋点 / Trace / Replay，NestJS 接收与查询，Vue 管理端按项目和权限展示。
+            本页把架构、代码入口、主链路、已实现边界和后续 TODO 放在一张地图里。
+          </p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#todo">直接看未实现清单</a>
+            <a class="btn" href="#reading">按阅读顺序开始</a>
+            <a class="btn" href="#architecture">看架构图</a>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat"><b>53</b><span>单元测试通过（2026-11-18 实测）</span></div>
+            <div class="hero-stat"><b>11 + 2</b><span>监控页面 + 详情页</span></div>
+            <div class="hero-stat"><b>14</b><span>后端业务模块</span></div>
+            <div class="hero-stat"><b>MySQL</b><span>当前事实数据唯一落点</span></div>
+            <div class="hero-stat"><b>规划中</b><span>Redis Stream / ClickHouse / MinIO</span></div>
+          </div>
+        </div>
+
+        <section id="facts">
+          <h2><span class="no">0</span> 读前必读：先把事实校正</h2>
+          <div class="callout danger">
+            <strong>仓库文档有明显滞后，不能按旧状态读代码。</strong>
+            <code>AGENTS.md</code> 仍写着“当前仓库只包含登录页，尚未包含后端、业务页面和测试运行器”；
+            <code>docs/02-requirements.md</code>、<code>docs/03-architecture.md</code> 的头部也仍标“尚未实施/尚未实现”。
+            实际代码已经包含 <code>apps/backend</code>、11 个监控页面、7 个 SDK/协议包、MySQL migration、Docker Compose 和 Vitest。
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <h3>本轮核验基准</h3>
+              <ul class="read-list">
+                <li>分支：<code>main</code>，最近提交 <code>105f7ac first commit</code>；工作区还有未提交改动（Docker、Jenkins、README、SSO 回调等）。</li>
+                <li>核验日期：<strong>2026-11-18</strong>（Asia/Shanghai）。</li>
+                <li>已实测：<code>pnpm test</code> 通过 <strong>53 项</strong>；<code>test:e2e</code> 当前未全绿，详见第 12 节。</li>
+                <li>未在本轮重跑：<code>pnpm typecheck</code>、<code>pnpm build</code>、<code>pnpm lint</code>；文档记录 2026-11-17 通过，但不能当作本轮实测。</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>一句话理解系统</h3>
+              <p>
+                <strong>采集端</strong>是浏览器 SDK；<strong>控制面</strong>是 MySQL 中的项目、Issue、告警与权限元数据；
+                <strong>数据面</strong>当前也全部落在 MySQL 事实表；<strong>管理端</strong>是 Vue 3 + <code>@dt-frames</code> 的后台。
+                生产目标里的 Redis Stream、ClickHouse、MinIO 还没有接上，所以现在的写入是“同步直写 MySQL”的 MVP 形态。
+              </p>
+              <div class="chips">
+                <span class="chip">RUM</span><span class="chip">Web Vitals</span><span class="chip">Error Issue</span>
+                <span class="chip">Trace / Span</span><span class="chip">Session Replay</span><span class="chip">RBAC</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+<section id="overview">
+          <h2><span class="no">1</span> 项目定位与边界</h2>
+          <div class="grid3">
+            <div class="kpi"><div class="ico">SDK</div><div><b>浏览器采集</b><span>错误、Web Vitals、长任务、埋点、Trace、Replay</span></div></div>
+            <div class="kpi"><div class="ico">API</div><div><b>NestJS 接入</b><span>公开上报 + 管理查询 + JWT/RBAC + Swagger</span></div></div>
+            <div class="kpi"><div class="ico">UI</div><div><b>Vue 管理端</b><span>概览、错误、性能、Trace、Replay、埋点、项目、告警</span></div></div>
+          </div>
+          <div class="grid2" style="margin-top:14px">
+            <div class="card">
+              <h3>做的是什么</h3>
+              <ul class="read-list">
+                <li><strong>浏览器 RUM</strong>：FCP/LCP/CLS/INP/TTFB、FP、长任务、资源错误、JS/Promise/console 异常。</li>
+                <li><strong>错误聚合</strong>：按 fingerprint 归并为 Issue，记录样本堆栈、页面、环境、版本、Trace/Replay 关联。</li>
+                <li><strong>分布式 Tracing</strong>：浏览器 fetch/XHR Span + W3C Trace Context，服务端 OTLP/HTTP JSON 接入。</li>
+                <li><strong>Session Replay</strong>：rrweb 兼容录制、采样、gzip 分片上传、MySQL 索引 + 本地分片文件。</li>
+                <li><strong>管理端</strong>：项目/Key/DSN、错误分诊、性能、Trace 瀑布、Replay 时间线、埋点漏斗、告警规则。</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>明确不做什么</h3>
+              <ul class="read-list">
+                <li>不做全量 DOM 录制、输入值/响应体录制；Replay 只做采样和脱敏。</li>
+                <li>不做后端全量 APM、Profiling、自动全语言插桩、移动端/小程序 SDK。</li>
+                <li>不做公网 SaaS 注册、计费、多租户组织隔离。</li>
+                <li>不替代业务数据库/日志平台；首版不做通用服务端日志收集。</li>
+                <li>不做完整的漏斗/留存/LTV/归因体系；当前只有基础漏斗接口。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout info">
+            <strong>关键术语：</strong>
+            <strong>DSN</strong> 是带项目 ID 和浏览器 public key 的上报地址；
+            <strong>Issue</strong> 是同一 fingerprint 的错误聚合；
+            <strong>Span</strong> 是一次调用片段，<strong>Trace</strong> 是一棵 Span 树；
+            <strong>Replay</strong> 是 rrweb 事件流的分片，不是视频文件。
+          </div>
+        </section>
+
+<section id="stack">
+          <h2><span class="no">2</span> 技术栈事实</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>层次</th><th>技术</th><th>版本/位置</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>Monorepo</td><td>pnpm workspace + TypeScript</td><td>pnpm 12.5.1 · Node ≥ 20.19 · TS 5.9</td><td><code>apps/*</code>、<code>apps/demo/*</code>、<code>packages/*</code></td></tr>
+                <tr><td>管理端</td><td>Vue 3 + Vite 7 + Pinia 3 + Vue Router 4.5</td><td><code>apps/web</code></td><td>入口 <code>main.ts</code>，布局来自 <code>@dt-frames/layout</code></td></tr>
+                <tr><td>管理端 UI</td><td>Element Plus 2.9 + UnoCSS 66 + ECharts 6 + vxe-table 4</td><td><code>apps/web/package.json</code></td><td>CRUD 用 <code>useSource/useForm/useCurd/useVxeTable</code></td></tr>
+                <tr><td>后端</td><td>NestJS 11 + TypeORM 0.3 + MySQL 8.4</td><td><code>apps/backend</code></td><td>全局前缀 <code>/api</code>，统一响应壳，Swagger</td></tr>
+                <tr><td>认证</td><td>JWT RS256 + JWKS + Redis 在线会话</td><td><code>apps/backend/src/modules/auth</code></td><td>登录/用户/菜单由外部 auth-server + dt_frames 负责</td></tr>
+                <tr><td>限流/安全</td><td>@nestjs/throttler + helmet + CORS</td><td><code>app.module.ts</code> / <code>app.setup.ts</code></td><td>当前是全局 IP 限流，不是项目/key 维度配额</td></tr>
+                <tr><td>SDK</td><td>TypeScript + web-vitals 6 + rrweb 2.2</td><td><code>packages/sdk-*</code></td><td>core / browser / tracing / replay / vue / react</td></tr>
+                <tr><td>测试</td><td>Vitest 5 + jsdom + supertest</td><td><code>packages/*/vitest.config.ts</code> · <code>apps/backend/test</code></td><td>SDK 单测 + 后端单测/e2e；前端尚无测试</td></tr>
+                <tr><td>部署</td><td>Docker Compose + Nginx + Jenkins</td><td><code>docker/</code> · <code>Jenkinsfile</code></td><td>mysql/redis/backend/web/migrate；Replay 用数据卷</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+<section id="architecture">
+          <h2><span class="no">3</span> 技术架构图</h2>
+          <p class="muted">实线表示当前已经落地的调用/写入关系；虚线表示只在文档目标里、代码尚未接入的生产组件。</p>
+          <div class="svg-wrap">
+            <svg viewBox="0 0 1440 880" role="img" aria-label="dt-monitor 系统分层架构图">
+              <defs>
+                <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8" />
+                </marker>
+                <style>
+                  .st { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+                  .h { font-size: 22px; font-weight: 800; fill: #172033; }
+                  .sub { font-size: 12px; fill: #64748b; }
+                  .lane { font-size: 13px; font-weight: 800; fill: #334155; }
+                  .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.2; }
+                  .blue { fill: #eef4ff; stroke: #93b4ef; }
+                  .teal { fill: #ecfdf5; stroke: #6ee7b7; }
+                  .orange { fill: #fff7ed; stroke: #fdba74; }
+                  .purple { fill: #f5f3ff; stroke: #c4b5fd; }
+                  .gray { fill: #f8fafc; stroke: #cbd5e1; }
+                  .dash { fill: #f8fafc; stroke: #94a3b8; stroke-dasharray: 7 6; }
+                  .title { font-size: 13px; font-weight: 800; fill: #0f172a; }
+                  .text { font-size: 11px; fill: #475569; }
+                  .tiny { font-size: 10px; fill: #64748b; }
+                  .chipText { font-size: 10.5px; font-weight: 700; fill: #1e3a8a; }
+                  .arrow { stroke: #94a3b8; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+                </style>
+              </defs>
+
+              <rect x="0" y="0" width="1440" height="880" fill="#f8fafc" />
+              <text class="st h" x="30" y="34">dt-monitor 系统分层架构</text>
+              <text class="st sub" x="30" y="55">当前实现（实线）与生产目标（虚线）</text>
+
+              <!-- Row 1: clients -->
+              <text class="st lane" x="30" y="92">① 采集端 / 宿主页面</text>
+              <rect class="blue" x="30" y="104" width="250" height="70" rx="12" />
+              <text class="st title" x="46" y="130">业务 Web / SPA</text>
+              <text class="st text" x="46" y="150">接入方页面，引入 SDK 并传入 DSN</text>
+              <rect class="blue" x="300" y="104" width="200" height="70" rx="12" />
+              <text class="st title" x="316" y="130">apps/demo/vue</text>
+              <text class="st text" x="316" y="150">Vue 3 测试宿主</text>
+              <rect class="blue" x="520" y="104" width="200" height="70" rx="12" />
+              <text class="st title" x="536" y="130">apps/demo/react</text>
+              <text class="st text" x="536" y="150">React 测试宿主</text>
+              <rect class="gray" x="740" y="104" width="670" height="70" rx="12" />
+              <text class="st title" x="756" y="129">统一初始化入口</text>
+              <text class="st text" x="756" y="149">initMonitor({ dsn, app, environment, plugins }) · 默认 errors / performance / analytics</text>
+
+              <path class="arrow" d="M850 174 L850 202" />
+              <text class="st tiny" x="862" y="192">import @dt-monitor/*</text>
+
+              <!-- Row 2: SDK -->
+              <text class="st lane" x="30" y="196">② SDK 包（packages/*）</text>
+              <rect class="teal" x="30" y="208" width="170" height="100" rx="12" />
+              <text class="st title" x="46" y="234">contracts</text>
+              <text class="st text" x="46" y="254">DSN 解析</text>
+              <text class="st text" x="46" y="272">事件类型 / 常量</text>
+              <rect class="teal" x="220" y="208" width="180" height="100" rx="12" />
+              <text class="st title" x="236" y="234">sdk-core</text>
+              <text class="st text" x="236" y="254">队列 / 采样 / 重试</text>
+              <text class="st text" x="236" y="272">上下文 / 面包屑</text>
+              <rect class="teal" x="420" y="208" width="190" height="100" rx="12" />
+              <text class="st title" x="436" y="234">sdk-browser</text>
+              <text class="st text" x="436" y="254">错误 / Web Vitals</text>
+              <text class="st text" x="436" y="272">长任务 / 埋点</text>
+              <rect class="teal" x="630" y="208" width="170" height="100" rx="12" />
+              <text class="st title" x="646" y="234">sdk-tracing</text>
+              <text class="st text" x="646" y="254">fetch/XHR Span</text>
+              <text class="st text" x="646" y="272">W3C traceparent</text>
+              <rect class="teal" x="820" y="208" width="170" height="100" rx="12" />
+              <text class="st title" x="836" y="234">sdk-replay</text>
+              <text class="st text" x="836" y="254">rrweb 录制</text>
+              <text class="st text" x="836" y="272">gzip 分片上传</text>
+              <rect class="teal" x="1010" y="208" width="170" height="100" rx="12" />
+              <text class="st title" x="1026" y="234">sdk-vue</text>
+              <text class="st text" x="1026" y="254">路由 pageview</text>
+              <text class="st text" x="1026" y="272">Vue 插件</text>
+              <rect class="teal" x="1200" y="208" width="210" height="100" rx="12" />
+              <text class="st title" x="1216" y="234">sdk-react</text>
+              <text class="st text" x="1216" y="254">MonitorProvider</text>
+              <text class="st text" x="1216" y="272">ErrorBoundary</text>
+
+              <path class="arrow" d="M510 308 L510 340" />
+              <text class="st tiny" x="522" y="330">POST 事件 / 分片</text>
+
+              <!-- Row 3: edge -->
+              <text class="st lane" x="30" y="332">③ 接入层</text>
+              <rect class="orange" x="30" y="344" width="180" height="116" rx="12" />
+              <text class="st title" x="46" y="370">Nginx</text>
+              <text class="st text" x="46" y="390">同源代理 / SPA fallback</text>
+              <text class="st text" x="46" y="408">/api · /auth-api · /uploads</text>
+              <text class="st tiny" x="46" y="430">生产入口，见 docker/web/nginx</text>
+
+              <rect class="orange" x="230" y="344" width="560" height="116" rx="12" />
+              <text class="st title" x="246" y="370">公开数据面（@Public，不做 JWT）</text>
+              <rect class="gray" x="246" y="384" width="160" height="40" rx="8" />
+              <text class="st chipText" x="272" y="409">/ingest/v1</text>
+              <rect class="gray" x="420" y="384" width="160" height="40" rx="8" />
+              <text class="st chipText" x="452" y="409">/otlp/v1</text>
+              <rect class="gray" x="594" y="384" width="180" height="40" rx="8" />
+              <text class="st chipText" x="616" y="409">/replay/v1</text>
+              <text class="st tiny" x="246" y="445">校验 public/server key、批次格式、大小与幂等；当前同步写 MySQL</text>
+
+              <rect class="orange" x="810" y="344" width="260" height="116" rx="12" />
+              <text class="st title" x="826" y="370">全局守卫</text>
+              <text class="st text" x="826" y="390">JwtAuthGuard</text>
+              <text class="st text" x="826" y="408">PermissionGuard</text>
+              <text class="st tiny" x="826" y="430">@RequirePermission('monitor:*')</text>
+
+              <rect class="blue" x="1090" y="344" width="320" height="116" rx="12" />
+              <text class="st title" x="1106" y="370">管理端 Web</text>
+              <text class="st text" x="1106" y="390">Vue 3 + @dt-frames/layout</text>
+              <text class="st text" x="1106" y="408">Element Plus + ECharts + UnoCSS</text>
+              <text class="st tiny" x="1106" y="430">调用 /api/monitor/* 与 /api/user/*</text>
+
+              <path class="arrow" d="M210 402 L228 402" />
+              <path class="arrow" d="M1090 402 L1072 402" />
+              <path class="arrow" d="M940 460 L940 492" />
+              <path class="arrow" d="M400 460 L400 492" />
+
+              <!-- Row 4: NestJS -->
+              <text class="st lane" x="30" y="488">④ NestJS 应用层（apps/backend/src/modules）</text>
+              <rect class="purple" x="30" y="500" width="360" height="132" rx="12" />
+              <text class="st title" x="46" y="526">上报处理（写路径）</text>
+              <text class="st text" x="46" y="548">ingest.service · otlp.service</text>
+              <text class="st text" x="46" y="566">replay-ingest.service</text>
+              <text class="st text" x="46" y="584">replay-storage.service（本地磁盘）</text>
+              <text class="st tiny" x="46" y="610">事务内直接 save，无队列</text>
+
+              <rect class="purple" x="410" y="500" width="520" height="132" rx="12" />
+              <text class="st title" x="426" y="526">查询与聚合（读路径）</text>
+              <rect class="gray" x="426" y="540" width="104" height="28" rx="7" /><text class="st chipText" x="446" y="559">projects</text>
+              <rect class="gray" x="540" y="540" width="90" height="28" rx="7" /><text class="st chipText" x="564" y="559">errors</text>
+              <rect class="gray" x="640" y="540" width="120" height="28" rx="7" /><text class="st chipText" x="652" y="559">performance</text>
+              <rect class="gray" x="770" y="540" width="90" height="28" rx="7" /><text class="st chipText" x="794" y="559">tracing</text>
+              <rect class="gray" x="426" y="578" width="100" height="28" rx="7" /><text class="st chipText" x="448" y="597">replays</text>
+              <rect class="gray" x="536" y="578" width="100" height="28" rx="7" /><text class="st chipText" x="558" y="597">analytics</text>
+              <rect class="gray" x="646" y="578" width="90" height="28" rx="7" /><text class="st chipText" x="668" y="597">alerts</text>
+              <rect class="gray" x="746" y="578" width="114" height="28" rx="7" /><text class="st chipText" x="764" y="597">overview</text>
+              <text class="st tiny" x="426" y="622">所有查询走 TypeORM，返回统一分页结构</text>
+
+              <rect class="purple" x="950" y="500" width="460" height="132" rx="12" />
+              <text class="st title" x="966" y="526">认证 / 用户 / 公共设施</text>
+              <text class="st text" x="966" y="548">auth · user-endpoint · users · auth-db</text>
+              <text class="st text" x="966" y="566">config · TypeORM · RedisModule · Throttler</text>
+              <text class="st text" x="966" y="584">Swagger · TransformInterceptor · ExceptionFilter</text>
+              <text class="st tiny" x="966" y="610">系统角色直接放行，其他角色查权限码</text>
+
+              <path class="arrow" d="M210 632 L210 668" />
+              <path class="arrow" d="M670 632 L670 668" />
+              <path class="arrow" d="M960 632 L960 668" />
+              <path class="arrow" d="M1180 632 L1180 668" />
+
+              <!-- Row 5: data -->
+              <text class="st lane" x="30" y="656">⑤ 数据层与基础设施</text>
+              <rect class="gray" x="30" y="668" width="330" height="140" rx="12" />
+              <text class="st title" x="46" y="694">MySQL · dt_monitor</text>
+              <text class="st text" x="46" y="716">项目 / Key / Issue / 错误样本</text>
+              <text class="st text" x="46" y="734">性能指标 / Span / Replay 索引</text>
+              <text class="st text" x="46" y="752">埋点事件 / 告警规则与历史</text>
+              <text class="st tiny" x="46" y="778">当前事实数据唯一落点</text>
+
+              <rect class="gray" x="380" y="668" width="240" height="140" rx="12" />
+              <text class="st title" x="396" y="694">MySQL · dt_frames</text>
+              <text class="st text" x="396" y="716">sys_user / sys_role</text>
+              <text class="st text" x="396" y="734">sys_menu / sys_app</text>
+              <text class="st text" x="396" y="752">权限码与菜单授权</text>
+              <text class="st tiny" x="396" y="778">由外部 auth-server 维护</text>
+
+              <rect class="gray" x="640" y="668" width="200" height="140" rx="12" />
+              <text class="st title" x="656" y="694">Redis</text>
+              <text class="st text" x="656" y="716">在线会话</text>
+              <text class="st text" x="656" y="734">刷新令牌</text>
+              <text class="st text" x="656" y="752">缓存 / 全局限流</text>
+              <text class="st tiny" x="656" y="778">与 auth-server 共享实例</text>
+
+              <rect class="gray" x="860" y="668" width="200" height="140" rx="12" />
+              <text class="st title" x="876" y="694">本地磁盘</text>
+              <text class="st text" x="876" y="716">REPLAY_STORAGE_DIR</text>
+              <text class="st text" x="876" y="734">data/replays</text>
+              <text class="st text" x="876" y="752">gzip rrweb 分片</text>
+              <text class="st tiny" x="876" y="778">当前没有签名播放入口</text>
+
+              <rect class="dash" x="1080" y="668" width="150" height="140" rx="12" />
+              <text class="st title" x="1096" y="694">ClickHouse</text>
+              <text class="st text" x="1096" y="716">规划：明细表</text>
+              <text class="st text" x="1096" y="734">聚合表 / TTL</text>
+              <text class="st tiny" x="1096" y="778">代码未接入</text>
+
+              <rect class="dash" x="1250" y="668" width="160" height="140" rx="12" />
+              <text class="st title" x="1266" y="694">MinIO / S3</text>
+              <text class="st text" x="1266" y="716">规划：Replay 对象</text>
+              <text class="st text" x="1266" y="734">签名播放 / 生命周期</text>
+              <text class="st tiny" x="1266" y="778">代码未接入</text>
+
+              <text class="st tiny" x="30" y="840">说明：Docker Compose 当前只启动 mysql、redis、backend、web、migrate；没有 ClickHouse、MinIO、Redis Stream 消费者。Replay 分片落在 replay_data 卷/本地目录。</text>
+            </svg>
+          </div>
+          <div class="legend">
+            <span><i></i>当前已实现</span>
+            <span><i class="dash"></i>规划/未接入</span>
+            <span>蓝色：管理端 / 采集端</span>
+            <span>绿色：SDK 包</span>
+            <span>橙色：接入层</span>
+            <span>紫色：NestJS 模块</span>
+          </div>
+        </section>
+
+<section id="flow">
+          <h2><span class="no">4</span> 核心链路：一条事件怎么走</h2>
+          <div class="flow">
+            <div class="flow-card">
+              <div class="n">1</div>
+              <h4>SDK 采集与入队</h4>
+              <p>插件生成标准事件，core 补上下文、采样、去重，进入内存队列；默认 50 条/批、5 秒刷一次、上限 1000 条、最多重试 3 次。</p>
+              <code>packages/sdk-core/src/client.ts</code>
+            </div>
+            <div class="flow-card">
+              <div class="n">2</div>
+              <h4>浏览器上报</h4>
+              <p>使用 DSN 解析出的 <code>/ingest/v1/:projectId?key=...</code> 发送；页面隐藏/卸载时用 <code>sendBeacon</code> 或 <code>fetch keepalive</code> 尽力送达。</p>
+              <code>packages/sdk-browser/src/transport.ts</code>
+            </div>
+            <div class="flow-card">
+              <div class="n">3</div>
+              <h4>公开入口校验</h4>
+              <p>入口标 <code>@Public()</code>，不要求 JWT；校验项目存在、key 类型/状态、事件字段、大小与幂等 eventId。</p>
+              <code>apps/backend/src/modules/ingest/ingest.controller.ts</code>
+            </div>
+            <div class="flow-card">
+              <div class="n">4</div>
+              <h4>事务写 MySQL</h4>
+              <p>一个批次在 TypeORM 事务内写埋点/性能/错误/Span；错误按 fingerprint upsert Issue，并递增项目计数。</p>
+              <code>apps/backend/src/modules/ingest/ingest.service.ts</code>
+            </div>
+            <div class="flow-card">
+              <div class="n">5</div>
+              <h4>管理端查询</h4>
+              <p><code>/api/monitor/*</code> 走 Guard → Controller → Service → TypeORM，统一返回 <code>{ code: 0, data, message }</code>；前端 <code>http</code> 自动解包。</p>
+              <code>apps/web/src/api/monitor.ts</code>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top:16px">
+            <div class="card">
+              <h3>当前真实写入路径</h3>
+              <p>
+                <strong>浏览器 → Nginx/直连 → NestJS Ingest → MySQL。</strong>
+                没有 Redis Stream、没有消费者组、没有 ClickHouse。接口返回 <code>202</code> 时，数据已经在 MySQL 事务里落库（或整批失败）。
+                Replay 分片走单独入口，gzip 写入 <code>replay_data</code>，索引写 MySQL。
+              </p>
+              <p class="small muted">这适合本地演示和低流量验证，不适合生产高吞吐/可回放/可重试的数据面。</p>
+            </div>
+            <div class="card">
+              <h3>文档里的生产目标路径</h3>
+              <p>
+                <strong>浏览器 → 接入层 → Redis Stream → 消费者 → ClickHouse</strong>；Replay 分片 → MinIO/S3；MySQL 只保留项目、Issue、告警、权限等控制面元数据。
+                这条链路目前只存在于 <code>docs/03-architecture.md</code> 和需求文档，代码尚未实现。
+              </p>
+              <p class="small muted">阅读时要把“设计目标”和“当前实现”分开，否则很容易误判。</p>
+            </div>
+          </div>
+
+          <div class="callout warn">
+            <strong>读主链路时优先盯住 6 个文件：</strong>
+            <code>packages/contracts/src/types.ts</code>、
+            <code>packages/sdk-core/src/client.ts</code>、
+            <code>apps/backend/src/modules/ingest/ingest.service.ts</code>、
+            <code>apps/backend/src/modules/errors/errors.service.ts</code>、
+            <code>apps/web/src/api/monitor.ts</code>、
+            <code>apps/web/src/views/monitor/overview/index.vue</code>。
+          </div>
+        </section>
+
+<section id="modules">
+          <h2><span class="no">5</span> 目录与模块地图</h2>
+          <div class="tree"><span class="c">jianwei1/</span>
+├── <span class="g">apps/</span>
+│   ├── <span class="y">web/</span>                 Vue 3 管理端（登录跳板、SSO 回调、11 个监控页面）
+│   ├── <span class="y">backend/</span>             NestJS 11 API（公开上报 + 管理查询 + 认证/RBAC）
+│   └── <span class="y">demo/</span>
+│       ├── vue/               Vue 3 SDK 测试宿主
+│       └── react/             React SDK 测试宿主
+├── <span class="g">packages/</span>
+│   ├── contracts/             DSN、事件类型、常量（前后端/SDK 共享）
+│   ├── sdk-core/              队列、采样、重试、上下文、客户端 API
+│   ├── sdk-browser/           错误 / Web Vitals / 长任务 / 埋点 / 传输
+│   ├── sdk-tracing/           fetch/XHR Span、W3C traceparent
+│   ├── sdk-replay/            rrweb 录制、压缩、分片上传
+│   ├── sdk-vue/               Vue 插件、路由 pageview
+│   ├── sdk-react/             Provider、ErrorBoundary
+│   └── core/                  starter-core 占位包（当前几乎为空）
+├── <span class="g">docker/</span>                 Compose、Nginx、Dockerfile、部署脚本
+├── <span class="g">docs/</span>                   需求、架构、执行计划、SSO、实施 TODO
+├── <span class="g">scripts/</span>                 workspace 工程脚本（fix-resolver）
+├── Jenkinsfile / docker/      CI 与部署入口
+└── package.json / pnpm-workspace.yaml / tsconfig.base.json
+</div>
+
+          <h3>后端模块（apps/backend/src/modules）</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>模块</th><th>入口</th><th>职责</th><th>关键实体/依赖</th></tr></thead>
+              <tbody>
+                <tr><td><code>ingest</code></td><td><code>ingest/otlp/replay.controller.ts</code></td><td>浏览器批量事件、OTLP Traces、Replay gzip 分片；公开入口</td><td>Issue、ErrorEvent、PerformanceMetric、TraceSpan、ReplaySession、ReplayChunk</td></tr>
+                <tr><td><code>projects</code></td><td><code>projects.controller.ts</code></td><td>项目 CRUD、归档、Key 轮换/吊销、DSN、采样/留存设置</td><td>Project、ProjectKey</td></tr>
+                <tr><td><code>errors</code></td><td><code>errors.controller.ts</code></td><td>趋势、Issue 分页/详情/状态/指派、错误样本、筛选项</td><td>Issue、ErrorEvent</td></tr>
+                <tr><td><code>performance</code></td><td><code>performance.controller.ts</code></td><td>Web Vitals 摘要、慢页面、长任务、筛选项</td><td>PerformanceMetric</td></tr>
+                <tr><td><code>tracing</code></td><td><code>tracing.controller.ts</code></td><td>Trace 列表/汇总/详情/Span 瀑布、关联 Issue/Replay</td><td>TraceSpan、Issue、ReplaySession</td></tr>
+                <tr><td><code>replays</code></td><td><code>replays.controller.ts</code></td><td>Replay 列表/汇总/详情时间线/筛选项</td><td>ReplaySession、ErrorEvent、AnalyticsEvent</td></tr>
+                <tr><td><code>analytics</code></td><td><code>analytics.controller.ts</code></td><td>埋点摘要、趋势、事件分页、漏斗、筛选项、事件探索</td><td>AnalyticsEvent</td></tr>
+                <tr><td><code>alerts</code></td><td><code>alerts.controller.ts</code></td><td>规则 CRUD、手动测试、历史分页、汇总</td><td>AlertRule、AlertHistory</td></tr>
+                <tr><td><code>overview</code></td><td><code>overview.controller.ts</code></td><td>概览指标卡、趋势、慢 Trace、最近 Replay/告警</td><td>上述事实表聚合</td></tr>
+                <tr><td><code>auth</code></td><td><code>auth.controller.ts</code></td><td>刷新令牌、当前用户资料、登出；JWT 策略/JWKS</td><td>Redis 在线会话、auth-server</td></tr>
+                <tr><td><code>user-endpoint</code></td><td><code>user-endpoint.controller.ts</code></td><td><code>/user/info</code>、<code>/menus</code>、<code>/permissions</code>、<code>/apps</code></td><td>dt_frames 的 SsoUser/Role/Menu/App</td></tr>
+                <tr><td><code>users</code></td><td>无 Controller</td><td>权限码查询、系统角色判断</td><td>auth-db</td></tr>
+                <tr><td><code>health</code></td><td><code>health.controller.ts</code></td><td>健康检查（数据库、Redis）</td><td>TypeORM、RedisService</td></tr>
+                <tr><td><code>auth-db</code></td><td>无 Controller</td><td>连接 <code>dt_frames</code>，只读认证实体</td><td>SsoUser/SsoRole/SsoMenu/SsoApp</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>前端页面（apps/web/src/views/monitor）</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>路由</th><th>页面文件</th><th>主要接口</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td><code>/monitor/overview</code></td><td><code>overview/index.vue</code></td><td><code>/monitor/overview/summary</code></td><td><span class="badge done">已实现</span></td></tr>
+                <tr><td><code>/monitor/errors</code></td><td><code>errors/index.vue</code></td><td>趋势、Issue 分页、筛选项</td><td><span class="badge done">已实现</span></td></tr>
+                <tr><td><code>/monitor/errors/:id</code></td><td><code>errors/detail/index.vue</code></td><td>Issue 详情、趋势、状态/指派</td><td><span class="badge done">已实现</span></td></tr>
+                <tr><td><code>/monitor/performance</code></td><td><code>performance/index.vue</code></td><td>摘要、慢页面、长任务、筛选项</td><td><span class="badge done">已实现</span></td></tr>
+                <tr><td><code>/monitor/traces</code></td><td><code>traces/index.vue</code></td><td>Trace 汇总、分页、筛选项</td><td><span class="badge done">已实现</span></td></tr>
+                <tr><td><code>/monitor/traces/:traceId</code></td><td><code>traces/detail/index.vue</code></td><td>Trace 详情、Span 瀑布</td><td><span class="badge done">已实现</span></td></tr>
+                <tr><td><code>/monitor/replays</code></td><td><code>replays/index.vue</code></td><td>列表、汇总、时间线抽屉</td><td><span class="badge partial">列表已实现 / 播放器未实现</span></td></tr>
+                <tr><td><code>/monitor/analytics</code></td><td><code>analytics/index.vue</code></td><td>摘要、趋势、事件分页、漏斗</td><td><span class="badge done">基础已实现</span></td></tr>
+                <tr><td><code>/monitor/projects</code></td><td><code>projects/index.vue</code></td><td>CRUD、Key、DSN、设置</td><td><span class="badge done">已实现</span></td></tr>
+                <tr><td><code>/monitor/sdk</code></td><td><code>sdk/index.vue</code></td><td>DSN、健康检查、示例代码</td><td><span class="badge fix">内容待修正</span></td></tr>
+                <tr><td><code>/monitor/alerts</code></td><td><code>alerts/index.vue</code></td><td>规则 CRUD、测试、历史</td><td><span class="badge partial">CRUD 已实现 / 评估未实现</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+<section id="api">
+          <h2><span class="no">6</span> API 与权限契约</h2>
+          <div class="callout info">
+            全局前缀 <code>/api</code>；成功响应 <code>{ code: 0, data, message: 'ok' }</code>；异常响应 <code>{ code, message, timestamp, path }</code>。
+            除明确标 <code>@Public()</code> 的接口外，其余接口默认经过 JWT 守卫和权限守卫。
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>分组</th><th>方法/路径</th><th>认证</th><th>权限码/说明</th></tr></thead>
+              <tbody>
+                <tr><td>公开上报</td><td><code>POST /api/ingest/v1/:projectId?key=</code></td><td>浏览器 public key</td><td><code>@Public</code>；返回 202，批次内部分非法会返回 rejected 明细</td></tr>
+                <tr><td>公开上报</td><td><code>POST /api/otlp/v1/traces</code></td><td><code>x-dt-monitor-key</code> server key</td><td><code>@Public</code>；只接受 OTLP/HTTP JSON，不接受浏览器 key</td></tr>
+                <tr><td>公开上报</td><td><code>POST /api/replay/v1/:projectId/:replayId/chunks/:sequence</code></td><td>browser key + checksum</td><td><code>@Public</code>；gzip octet-stream，返回 204</td></tr>
+                <tr><td>健康检查</td><td><code>GET /api/health</code></td><td>无</td><td><code>@Public</code>；返回 database/redis 状态</td></tr>
+                <tr><td>认证</td><td><code>POST /api/auth/refresh</code></td><td><code>@Public</code></td><td>用 refresh token 换取新 access token</td></tr>
+                <tr><td>认证</td><td><code>GET /api/auth/profile</code></td><td>JWT</td><td>当前用户资料</td></tr>
+                <tr><td>认证</td><td><code>POST /api/auth/logout</code></td><td>JWT</td><td>撤销 Redis 在线会话与刷新令牌</td></tr>
+                <tr><td>用户/菜单</td><td><code>GET /api/user/info</code> · <code>/menus</code> · <code>/permissions</code> · <code>/apps</code></td><td>JWT</td><td>菜单/权限来自 <code>dt_frames</code>；系统角色直接放行</td></tr>
+                <tr><td>项目</td><td><code>GET /api/monitor/projects</code> · <code>/active</code> · <code>/:id</code></td><td>JWT</td><td><code>monitor:project:list</code></td></tr>
+                <tr><td>项目</td><td><code>POST /api/monitor/projects</code> · <code>PATCH /:id</code> · <code>PATCH /:id/settings</code> · <code>DELETE /:id</code> · <code>POST /:id/archive</code></td><td>JWT</td><td><code>monitor:project:create/update/delete</code></td></tr>
+                <tr><td>项目 Key</td><td><code>GET /:id/keys</code> · <code>POST /:id/keys</code> · <code>POST /:id/keys/:keyId/revoke</code></td><td>JWT</td><td><code>monitor:project:list</code> / <code>monitor:project:rotate-key</code></td></tr>
+                <tr><td>错误</td><td><code>GET /api/monitor/errors/trend</code> · <code>/issues</code> · <code>/issues/:id</code> · <code>/events</code> · <code>/filters</code></td><td>JWT</td><td><code>monitor:error:list</code> / <code>monitor:error:read</code></td></tr>
+                <tr><td>错误</td><td><code>PATCH /api/monitor/errors/issues/:id</code></td><td>JWT</td><td><code>monitor:error:update</code>；支持 status、assigneeId</td></tr>
+                <tr><td>性能</td><td><code>GET /api/monitor/performance/summary</code> · <code>/pages</code> · <code>/long-tasks</code> · <code>/filters</code></td><td>JWT</td><td><code>monitor:performance:view</code></td></tr>
+                <tr><td>Trace</td><td><code>GET /api/monitor/traces</code> · <code>/summary</code> · <code>/filters</code> · <code>/:traceId</code> · <code>/:traceId/spans</code></td><td>JWT</td><td><code>monitor:trace:view</code> / <code>monitor:trace:read</code></td></tr>
+                <tr><td>Replay</td><td><code>GET /api/monitor/replays</code> · <code>/summary</code> · <code>/filters</code> · <code>/:replayId</code></td><td>JWT</td><td><code>monitor:replay:view</code> / <code>monitor:replay:read</code>；没有播放地址接口</td></tr>
+                <tr><td>埋点</td><td><code>GET /api/monitor/analytics/summary</code> · <code>/trend</code> · <code>/events</code> · <code>/funnel</code> · <code>/filters</code></td><td>JWT</td><td><code>monitor:analytics:view</code></td></tr>
+                <tr><td>埋点</td><td><code>GET /api/monitor/events/explore</code></td><td>JWT</td><td><code>monitor:event:explore</code></td></tr>
+                <tr><td>告警</td><td><code>GET /api/monitor/alerts/rules</code> · <code>/summary</code> · <code>/history</code></td><td>JWT</td><td><code>monitor:alert:list</code></td></tr>
+                <tr><td>告警</td><td><code>POST /rules</code> · <code>PATCH /rules/:id</code> · <code>DELETE /rules/:id</code> · <code>POST /rules/:id/test</code></td><td>JWT</td><td><code>monitor:alert:create/update/delete</code></td></tr>
+                <tr><td>概览</td><td><code>GET /api/monitor/overview/summary</code></td><td>JWT</td><td><code>monitor:overview:view</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout warn">
+            <strong>权限模型要点：</strong>
+            系统角色在 <code>PermissionGuard</code> 中直接放行；普通角色必须同时拥有页面菜单和按钮行权限码。
+            前端 <code>v-auth</code>/表格 <code>auth</code> 只是显示控制，真正拦截在后端。项目级成员隔离尚未实现，详见第 10 节。
+          </div>
+        </section>
+
+<section id="data">
+          <h2><span class="no">7</span> 数据模型与存储分工</h2>
+          <div class="grid2">
+            <div class="card">
+              <h3>dt_monitor（业务库）</h3>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>表</th><th>用途</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>monitor_project</code></td><td>项目、平台、状态、采样/留存 settings JSON、事件/错误计数</td></tr>
+                    <tr><td><code>monitor_project_key</code></td><td>browser/server key、状态、轮换历史</td></tr>
+                    <tr><td><code>monitor_issue</code></td><td>fingerprint 聚合、状态、次数、首末次、Trace/Replay 关联</td></tr>
+                    <tr><td><code>monitor_error_event</code></td><td>错误样本、堆栈、上下文、occurred_at</td></tr>
+                    <tr><td><code>monitor_performance_metric</code></td><td>Web Vitals / 长任务指标事实</td></tr>
+                    <tr><td><code>monitor_span</code></td><td>Trace/span、父子关系、耗时、属性 JSON</td></tr>
+                    <tr><td><code>monitor_replay_session</code></td><td>Replay 索引：会话、页面、时长、大小、错误数</td></tr>
+                    <tr><td><code>monitor_replay_chunk</code></td><td>分片序号、存储 key、checksum、事件数</td></tr>
+                    <tr><td><code>monitor_analytics_event</code></td><td>埋点事件、属性 JSON、用户/会话/页面</td></tr>
+                    <tr><td><code>monitor_alert_rule</code> / <code>history</code></td><td>告警规则；历史表存在但当前没有写入方</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <h3>dt_frames（认证库）</h3>
+              <p>用户、角色、菜单、应用注册由外部 auth-server / 权限中心维护，本仓库只读：</p>
+              <ul class="read-list">
+                <li><code>sys_user</code> / <code>sys_role</code>：用户与角色。</li>
+                <li><code>sys_menu</code>：菜单与按钮权限码，<code>path</code> 必须与前端静态路由一致。</li>
+                <li><code>sys_app</code>：OIDC 客户端与回调地址。</li>
+                <li>本仓库的 <code>seed:monitor-auth</code> 只幂等写入 monitor 应用与 23 条菜单/按钮，不创建用户和普通角色授权。</li>
+              </ul>
+              <h3>Redis</h3>
+              <p>在线会话 <code>dt-frame:monitor:online:&lt;jti&gt;</code>、刷新令牌、缓存与全局限流；必须与 auth-server 使用同一实例。</p>
+              <h3>Replay 分片</h3>
+              <p>当前是本地私有目录 <code>REPLAY_STORAGE_DIR</code>（Docker 卷 <code>replay_data</code>），不是对象存储；没有签名 URL、访问审计、孤儿清理。</p>
+            </div>
+          </div>
+          <div class="callout warn">
+            <strong>数据层现状与目标的差距：</strong>
+            MySQL 同时承担控制面和事实数据，查询全部走 TypeORM；文档中的 ClickHouse 明细/聚合表、TTL、Redis Stream 消费者、MinIO/S3 对象存储尚未出现在代码和 Compose 中。
+          </div>
+        </section>
+
+<section id="reading">
+          <h2><span class="no">8</span> 代码阅读顺序（按依赖，不按目录字母）</h2>
+          <p class="muted">建议从“协议 → SDK → 后端 → 前端 → 部署/测试”读。每一阶段都带着问题读，避免陷进单个页面。</p>
+
+          <div class="stage">
+            <div class="num">0</div>
+            <div class="head"><h3>先建立全局地图</h3><span class="time">约 20–30 分钟</span></div>
+            <div class="card">
+              <ul class="read-list">
+                <li><code>docs/README.md</code>：一句话方案、关键决策、当前未完成边界。</li>
+                <li><code>docs/02-requirements.md</code>：只读角色/权限、功能需求表、P0/P1/P2 分期，不必逐条背。</li>
+                <li><code>docs/03-architecture.md</code>：重点读 2（Monorepo）、4（管理端）、5（后端/数据流/存储分工）、7（部署拓扑）。注意头部“尚未实现”是旧状态。</li>
+                <li><code>docs/06-sso-auth.md</code>：登录、JWT、菜单 path、权限码、Redis 共享会话的契约。</li>
+                <li><code>package.json</code>、<code>pnpm-workspace.yaml</code>、<code>apps/web/package.json</code>、<code>apps/backend/package.json</code>：确认实际包名、脚本和依赖。</li>
+                <li><code>docker/docker-compose.yml</code>：确认当前只有 mysql/redis/backend/web/migrate。</li>
+              </ul>
+              <div class="question"><strong>读完能回答：</strong>控制面和数据面分别是什么？为什么认证库是 dt_frames 而不是 dt_monitor？当前数据面缺哪三件基础设施？</div>
+            </div>
+          </div>
+
+          <div class="stage">
+            <div class="num">1</div>
+            <div class="head"><h3>协议与 SDK 核心</h3><span class="time">约 60 分钟</span></div>
+            <div class="card">
+              <ul class="read-list">
+                <li><code>packages/contracts/src/types.ts</code>：事件类型、上下文、错误/性能/埋点/Span 负载。先看类型，再看实现。</li>
+                <li><code>packages/contracts/src/constants.ts</code>：批量、队列、采样、Replay 上限、敏感 query key。</li>
+                <li><code>packages/contracts/src/dsn.ts</code>：DSN 如何拆出 origin/projectId/publicKey，如何拼 ingest/replay URL。</li>
+                <li><code>packages/sdk-core/src/types.ts</code>：<code>MonitorClient</code>、插件、传输、存储接口。</li>
+                <li><code>packages/sdk-core/src/client.ts</code>：核心 868 行。重点看 <code>createMonitorClient</code>、<code>enqueue</code>、<code>sendBatch</code>、<code>flushInternal</code>、<code>captureEvent</code>、<code>track</code>、<code>pageView</code>、<code>identify</code>、<code>disable</code>。</li>
+                <li><code>packages/sdk-core/src/utils.ts</code>：JSON 克隆/裁剪、URL 脱敏、指纹、面包屑上限等纯函数。</li>
+              </ul>
+              <div class="question"><strong>读完能回答：</strong>事件长什么样？采样发生在哪一层？队列什么时候刷？重试和 sendBeacon 怎么协作？</div>
+            </div>
+          </div>
+
+          <div class="stage">
+            <div class="num">2</div>
+            <div class="head"><h3>浏览器插件、Tracing、Replay 与框架适配</h3><span class="time">约 70 分钟</span></div>
+            <div class="card">
+              <ul class="read-list">
+                <li><code>packages/sdk-browser/src/init.ts</code>：默认插件、浏览器上下文、生命周期 flush。</li>
+                <li><code>packages/sdk-browser/src/transport.ts</code>：fetch/keepalive、sendBeacon 降级、失败重试。</li>
+                <li><code>packages/sdk-browser/src/plugins/errors.ts</code>：window error、unhandledrejection、resource、console、去重与面包屑。</li>
+                <li><code>packages/sdk-browser/src/plugins/performance.ts</code>：web-vitals、FP、长任务。</li>
+                <li><code>packages/sdk-browser/src/plugins/analytics.ts</code>：page_view / 自定义事件。</li>
+                <li><code>packages/sdk-tracing/src/tracing.ts</code>：traceparent、fetch/XHR patch、Span 父子关系、采样。</li>
+                <li><code>packages/sdk-replay/src/replay.ts</code>：采样提升、缓冲、分片、上传重试、暂停/恢复。</li>
+                <li><code>packages/sdk-replay/src/recorder.ts</code> / <code>compression.ts</code> / <code>uploader.ts</code>：rrweb 动态加载、gzip、分片上传。</li>
+                <li><code>packages/sdk-vue/src/index.ts</code> / <code>packages/sdk-react/src/index.tsx</code>：路由 pageview、Provider、ErrorBoundary。</li>
+              </ul>
+              <div class="question"><strong>读完能回答：</strong>一个错误如何带上 trace/replay 上下文？Replay 为什么默认动态加载？Vue/React 适配层只做了哪些事？</div>
+            </div>
+          </div>
+
+          <div class="stage">
+            <div class="num">3</div>
+            <div class="head"><h3>后端：启动、鉴权、上报、查询</h3><span class="time">约 120 分钟</span></div>
+            <div class="card">
+              <ul class="read-list">
+                <li><code>apps/backend/src/main.ts</code> → <code>app.setup.ts</code> → <code>app.module.ts</code>：启动顺序、全局前缀、CORS/Helmet、ValidationPipe、响应壳、Swagger、全局 Guard。</li>
+                <li><code>apps/backend/src/config/configuration.ts</code>：两套数据库连接、Redis、JWT、DSN origin、Replay 目录。</li>
+                <li><code>common/guards</code>、<code>common/decorators</code>、<code>common/interceptors</code>、<code>common/filters</code>、<code>common/dto</code>：JWT/权限、<code>@Public</code>、<code>@RequirePermission</code>、统一响应/异常、分页。</li>
+                <li><code>modules/auth</code> + <code>modules/user-endpoint</code> + <code>modules/users</code> + <code>modules/auth-db</code>：SSO 刷新、JWKS、在线会话、菜单/权限读取。</li>
+                <li><code>modules/ingest</code>：先读 <code>ingest.controller.ts</code> 和 <code>ingest.service.ts</code>，再读 <code>otlp.service.ts</code>、<code>replay-ingest.service.ts</code>、<code>replay-storage.service.ts</code>。</li>
+                <li><code>modules/projects</code>：项目/Key/DSN/settings；注意 <code>resolveProject</code> 目前只校验项目存在。</li>
+                <li><code>modules/errors</code> → <code>performance</code> → <code>tracing</code> → <code>replays</code> → <code>analytics</code> → <code>alerts</code> → <code>overview</code>：按“单实体查询 → 跨实体聚合”的顺序读。</li>
+                <li><code>database/migrations</code> + <code>database/data-source.ts</code>：表结构、索引、默认项目/Key 种子。</li>
+              </ul>
+              <div class="question"><strong>读完能回答：</strong>为什么公开入口不需要 JWT？一个批次如何在事务里落库？Issue 如何 upsert？管理查询如何统一分页？</div>
+            </div>
+          </div>
+
+          <div class="stage">
+            <div class="num">4</div>
+            <div class="head"><h3>前端：入口、路由、请求、页面</h3><span class="time">约 120 分钟</span></div>
+            <div class="card">
+              <ul class="read-list">
+                <li><code>apps/web/src/main.ts</code>：Pinia、i18n、http 初始化、SSO 配置、主题、<code>useAppStore().setAppConf</code>、<code>initRouter</code>、<code>v-auth</code>。</li>
+                <li><code>apps/web/src/App.vue</code>：哪些路径走简化页面（登录/SSO 回调），其余走 <code>DtTheme</code>。</li>
+                <li><code>apps/web/src/router/routes.ts</code>：13 条静态路由；业务页面必须与后端菜单 path 一致。</li>
+                <li><code>apps/web/src/utils/http.ts</code>：baseURL、Bearer、解包 <code>{code,data,message}</code>、401 静默续期、登录过期兜底。</li>
+                <li><code>apps/web/src/api/monitor.ts</code>：所有 TS 类型 + 管理接口封装，先看类型再看页面。</li>
+                <li><code>apps/web/src/stores/monitor.ts</code>：当前项目、时间范围、<code>resolveQuery</code>。</li>
+                <li><code>apps/web/src/components/monitor/*</code>：页头、筛选条、指标卡、图表、分页、区块。</li>
+                <li>页面顺序：<code>overview</code> → <code>errors</code> → <code>errors/detail</code> → <code>performance</code> → <code>traces</code> → <code>traces/detail</code> → <code>replays</code> → <code>analytics</code> → <code>projects</code> → <code>sdk</code> → <code>alerts</code>。</li>
+                <li><code>views/login/index.vue</code> → <code>views/sso/callback.vue</code> → <code>api/sso.ts</code>：登录跳板、PKCE/state/nonce、回调换 token、登出。</li>
+              </ul>
+              <div class="question"><strong>读完能回答：</strong>菜单 path 如何匹配静态路由？页面如何拿当前项目和 24h 时间范围？图表页和 CRUD 页的写法差异是什么？</div>
+            </div>
+          </div>
+
+          <div class="stage">
+            <div class="num">5</div>
+            <div class="head"><h3>Demo、部署与测试</h3><span class="time">约 40 分钟</span></div>
+            <div class="card">
+              <ul class="read-list">
+                <li><code>apps/demo/vue/src/monitor.ts</code> / <code>apps/demo/react/src/monitor.ts</code>：如何用 DSN 初始化全部插件。</li>
+                <li><code>apps/demo/*/scripts/send-otlp.mjs</code>：server key 只放在 Node 脚本，不放进 VITE 环境变量。</li>
+                <li><code>docker/docker-compose.yml</code>、<code>docker/README.md</code>、<code>docker/deploy.sh</code>、<code>Jenkinsfile</code>：镜像、迁移、seed、健康检查、回滚边界。</li>
+                <li><code>apps/backend/test</code> 与各包 <code>*.spec.ts</code>：看现有测试覆盖了什么，特别留意没有覆盖的领域模块和前端。</li>
+              </ul>
+              <div class="question"><strong>读完能回答：</strong>本地怎么跑通？生产怎么部署？哪些测试是真实存在的，哪些只是文档里的目标？</div>
+            </div>
+          </div>
+
+          <div class="callout ok">
+            <strong>只有 30 分钟？</strong>按这个顺序读 5 个文件即可建立主骨架：
+            <code>packages/contracts/src/types.ts</code> →
+            <code>packages/sdk-core/src/client.ts</code>（只看 createMonitorClient/enqueue/sendBatch） →
+            <code>apps/backend/src/modules/ingest/ingest.service.ts</code> →
+            <code>apps/backend/src/modules/errors/errors.service.ts</code> →
+            <code>apps/web/src/views/monitor/overview/index.vue</code>。
+          </div>
+        </section>
+
+<section id="status">
+          <h2><span class="no">9</span> 功能状态矩阵</h2>
+          <div class="filter-bar" id="status-filter">
+            <button class="active" data-filter="all">全部</button>
+            <button data-filter="done">已实现</button>
+            <button data-filter="partial">部分实现</button>
+            <button data-filter="todo">未实现</button>
+            <button data-filter="fix">待修正</button>
+          </div>
+          <div class="table-wrap">
+            <table id="status-table">
+              <thead><tr><th>能力</th><th>状态</th><th>当前事实</th><th>证据位置</th></tr></thead>
+              <tbody>
+                <tr data-status="done"><td>SDK contracts/core/browser/tracing/replay/vue/react</td><td><span class="badge done">已实现</span></td><td>7 个包有源码与 Vitest 用例；<code>pnpm test</code> 通过 46 项 SDK/contracts 测试</td><td><code>packages/*/src</code></td></tr>
+                <tr data-status="done"><td>浏览器事件上报</td><td><span class="badge done">已实现</span></td><td>批量校验、key 校验、事务直写 MySQL、eventId 幂等、部分非法返回 rejected</td><td><code>ingest.controller.ts</code> · <code>ingest.service.ts</code></td></tr>
+                <tr data-status="done"><td>OTLP/HTTP JSON Traces</td><td><span class="badge done">已实现</span></td><td>server key 校验、Span 归一化、写 MySQL <code>monitor_span</code></td><td><code>otlp.controller.ts</code> · <code>otlp.service.ts</code></td></tr>
+                <tr data-status="done"><td>Replay gzip 分片上传</td><td><span class="badge done">已实现</span></td><td>checksum、解压、rrweb JSON 校验、序号幂等、本地私有目录 + MySQL 索引</td><td><code>replay-ingest.service.ts</code> · <code>replay-storage.service.ts</code></td></tr>
+                <tr data-status="todo"><td>Replay 播放器 / 签名播放</td><td><span class="badge todo">未实现</span></td><td>列表与时间线可用；页面明确写着“播放器依赖分片、对象存储与签名播放地址，当前数据面尚未接入”</td><td><code>apps/web/src/views/monitor/replays/index.vue:269</code></td></tr>
+                <tr data-status="done"><td>管理端 11 个监控页面</td><td><span class="badge done">已实现</span></td><td>概览、错误、错误详情、性能、Trace、Trace 详情、Replay、埋点、项目、SDK、告警均已接 API</td><td><code>apps/web/src/views/monitor</code> · <code>router/routes.ts</code></td></tr>
+                <tr data-status="done"><td>项目 / Key / DSN / CRUD</td><td><span class="badge done">已实现</span></td><td>项目分页、创建、编辑、删除、归档、Key 列表/轮换/吊销、DSN 展示</td><td><code>projects.service.ts</code> · <code>projects/index.vue</code></td></tr>
+                <tr data-status="partial"><td>项目采样/留存/隐私设置</td><td><span class="badge partial">部分实现</span></td><td>设置能保存到 <code>project.settings</code>，但后端没有消费这些配置；SDK 也不会远程拉取</td><td><code>update-project-settings.dto.ts</code></td></tr>
+                <tr data-status="done"><td>错误 Issue 列表/详情/趋势/状态/指派</td><td><span class="badge done">已实现</span></td><td>fingerprint 聚合、样本堆栈、状态流转、assigneeId 更新；指派 UI 目前要求输入用户 ID</td><td><code>errors.service.ts</code> · <code>errors/detail/index.vue</code></td></tr>
+                <tr data-status="done"><td>性能 / Trace / 埋点基础分析</td><td><span class="badge done">已实现</span></td><td>Web Vitals、慢页面、长任务、Trace 瀑布、埋点趋势/事件/基础漏斗</td><td><code>performance/tracing/analytics</code></td></tr>
+                <tr data-status="partial"><td>告警规则 CRUD / 手动测试</td><td><span class="badge partial">部分实现</span></td><td>规则增删改查、启停、Webhook 测试可用；没有定时评估、触发历史和通知渠道</td><td><code>alerts.service.ts</code></td></tr>
+                <tr data-status="todo"><td>告警评估 / 历史写入 / 通知</td><td><span class="badge todo">未实现</span></td><td><code>AlertHistory</code> 只被读取，代码中没有写入方；<code>lastTriggeredAt</code> 也没有更新方</td><td><code>alerts.service.ts</code> · <code>alert-history.entity.ts</code></td></tr>
+                <tr data-status="done"><td>SSO / JWT / RBAC / 菜单</td><td><span class="badge done">已实现</span></td><td>OIDC PKCE 回调、JWKS、Redis 在线会话、系统角色放行、普通角色权限码校验</td><td><code>auth/*</code> · <code>user-endpoint/*</code> · <code>api/sso.ts</code></td></tr>
+                <tr data-status="todo"><td>Redis Stream 队列 / 消费者 / 死信</td><td><span class="badge todo">未实现</span></td><td>公开入口在请求线程内直接写 MySQL；没有 Stream、消费者组、重试、死信、503 语义</td><td><code>ingest.service.ts:134</code></td></tr>
+                <tr data-status="todo"><td>ClickHouse 明细/聚合/TTL</td><td><span class="badge todo">未实现</span></td><td>事实表全部在 MySQL；配置和 Compose 都没有 ClickHouse</td><td><code>configuration.ts</code> · <code>docker-compose.yml</code></td></tr>
+                <tr data-status="todo"><td>MinIO/S3 对象存储</td><td><span class="badge todo">未实现</span></td><td>Replay 分片写本地目录；没有对象存储 SDK、签名 URL、生命周期</td><td><code>replay-storage.service.ts</code></td></tr>
+                <tr data-status="todo"><td>留存/清理/备份任务</td><td><span class="badge todo">未实现</span></td><td>没有定时任务、TTL、清理脚本；项目设置中的天数不会自动执行</td><td><code>project.settings</code> · 无 scheduler</td></tr>
+                <tr data-status="todo"><td>项目成员 / 项目级数据隔离</td><td><span class="badge todo">未实现</span></td><td><code>resolveProject</code> 只校验项目存在；没有 <code>project_member</code> 表和成员校验，拥有全局权限即可访问所有项目</td><td><code>projects.service.ts</code></td></tr>
+                <tr data-status="todo"><td>Source Map 上传与堆栈还原</td><td><span class="badge todo">未实现</span></td><td>错误详情直接展示原始 stack；没有 source map 表、上传接口或解析逻辑</td><td><code>errors/detail/index.vue</code></td></tr>
+                <tr data-status="todo"><td>前端单元/E2E 测试</td><td><span class="badge todo">未实现</span></td><td><code>apps/web</code> 没有 vitest/playwright 配置和测试文件</td><td><code>apps/web/package.json</code></td></tr>
+                <tr data-status="partial"><td>后端领域模块单测</td><td><span class="badge partial">部分实现</span></td><td>只有 <code>auth.service.spec.ts</code>、<code>otlp.service.spec.ts</code>；errors/performance/tracing/replays/alerts/projects/overview/analytics 没有单测</td><td><code>apps/backend/src/modules</code></td></tr>
+                <tr data-status="fix"><td>后端 e2e 当前未全绿</td><td><span class="badge fix">待修正</span></td><td>2026-11-18 实测：auth 套件 setup 报 <code>Duplicate entry 'frames' for key 'sys_app.uk_code'</code>，8 项跳过；ingest 套件 5 项通过</td><td><code>vitest.config.e2e.ts</code> · <code>test/auth.e2e-spec.ts</code></td></tr>
+                <tr data-status="todo"><td>Demo Playwright / 压测</td><td><span class="badge todo">未实现</span></td><td>没有 Playwright 配置，也没有 1,000 events/s 压测脚本或报告</td><td>仓库无对应文件</td></tr>
+                <tr data-status="todo"><td>SDK 发布 npm</td><td><span class="badge todo">未实现</span></td><td>SDK 仍是 workspace 私有包；SDK 页面安装命令中的包名也还没有真实发布</td><td><code>packages/*/package.json</code></td></tr>
+                <tr data-status="fix"><td>文档状态同步</td><td><span class="badge fix">待修正</span></td><td>AGENTS/README/需求/架构/TODO 多处仍写“只有登录页/尚未实现”</td><td>见第 11 节</td></tr>
+                <tr data-status="fix"><td>SDK 接入页文案过期</td><td><span class="badge fix">待修正</span></td><td>页面仍提示“后端 /ingest、OTLP 与 Replay 上传入口尚未实现”，与代码不符</td><td><code>sdk/index.vue:152</code></td></tr>
+                <tr data-status="fix"><td>SDK 版本号不一致</td><td><span class="badge fix">待修正</span></td><td><code>SDK_VERSION = 0.1.0</code>，默认项目 <code>sdk_version = 0.2.0</code></td><td><code>contracts/src/constants.ts</code> · migration</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+<section id="todo">
+          <h2><span class="no">10</span> 未实现功能清单（按优先级）</h2>
+          <p class="muted">下面的“未实现”指代码里没有闭环，不是指页面没有按钮。P0 是生产数据面/安全闭环，P1 是可用性与工程化，P2 是远期能力。</p>
+
+          <h3>P0：生产数据面与安全闭环</h3>
+          <div class="grid2">
+            <article class="todo-card p0">
+              <div class="top"><h4>1. Redis Stream 异步数据面</h4><span class="badge todo">未实现</span></div>
+              <p class="why">当前 <code>ingest.service.ts</code> 在请求线程里开 TypeORM 事务直接写 MySQL。流量上来后，接口延迟、数据库压力和失败重试都不可控；文档要求的 503 语义、消费者组、死信队列也没有。</p>
+              <div class="evidence">证据：<code>apps/backend/src/modules/ingest/ingest.service.ts:134</code> 的 <code>dataSource.transaction</code>；仓库没有 Stream/消费者代码。</div>
+              <p class="accept"><strong>建议：</strong>接入层只做校验和入队，消费者批量写存储；队列不可用时明确返回 503，而不是 202；增加积压/失败指标。</p>
+            </article>
+
+            <article class="todo-card p0">
+              <div class="top"><h4>2. ClickHouse 明细/聚合表</h4><span class="badge todo">未实现</span></div>
+              <p class="why">事件、性能、Span 现在都在 MySQL；没有按项目分区、TTL、预聚合和列式查询。管理端 7/30 天聚合会随数据量增长变慢。</p>
+              <div class="evidence">证据：<code>apps/backend/src/config/configuration.ts</code> 的 entities 只有 MySQL 实体；<code>docker/docker-compose.yml</code> 没有 ClickHouse。</div>
+              <p class="accept"><strong>建议：</strong>先建明细表和最小聚合表，消费者批量写入；查询仓库按“事实表/聚合表”分层，保留 MySQL 控制面。</p>
+            </article>
+
+            <article class="todo-card p0">
+              <div class="top"><h4>3. Replay 对象存储 + 播放链路</h4><span class="badge todo">未实现</span></div>
+              <p class="why">分片当前写本地目录，没有 MinIO/S3、签名播放地址、访问审计、孤儿分片清理；管理端也没有 rrweb 播放器，只有错误/埋点时间线抽屉。</p>
+              <div class="evidence">证据：<code>replay-storage.service.ts</code> 使用 <code>writeFile</code>；<code>replays/index.vue:269</code> 明确提示播放器未接入；<code>replays.controller.ts</code> 没有播放/分片下载接口。</div>
+              <p class="accept"><strong>建议：</strong>存储抽象接口 + MinIO 实现；增加按 replayId 取分片/签名 URL 的受控接口；前端接 rrweb-player；补访问审计与生命周期。</p>
+            </article>
+
+            <article class="todo-card p0">
+              <div class="top"><h4>4. 告警评估与通知</h4><span class="badge todo">未实现</span></div>
+              <p class="why">告警规则可以 CRUD，但没有任何定时评估逻辑：<code>monitor_alert_history</code> 没有写入方，<code>lastTriggeredAt</code> 没有更新方，只有“测试发送”一个手动 Webhook。</p>
+              <div class="evidence">证据：<code>alerts.service.ts</code> 只有 <code>historyRepo</code> 查询；全仓库没有 <code>@Cron</code>/scheduler；<code>test()</code> 依赖 <code>ALERT_WEBHOOK_URL</code>。</div>
+              <p class="accept"><strong>建议：</strong>按规则窗口定时聚合错误率/Web Vitals/长任务/可用性；命中后写历史、更新 lastTriggeredAt、按 cooldown 去重；先做 Webhook，再考虑邮件/SSE。</p>
+            </article>
+
+            <article class="todo-card p0">
+              <div class="top"><h4>5. 留存、清理与设置真正生效</h4><span class="badge todo">未实现</span></div>
+              <p class="why">项目设置里的 <code>retentionDays</code>、<code>replayRetentionDays</code>、采样率、脱敏/console 开关只是存进 JSON；没有任务读取它们，也没有删除过期事件/分片。</p>
+              <div class="evidence">证据：<code>update-project-settings.dto.ts</code> 只做校验；<code>projects.service.ts</code> 只 merge 到 <code>settings</code>；没有 cleanup job。</div>
+              <p class="accept"><strong>建议：</strong>先实现按项目/时间的清理任务和干跑报告；采样率优先下发给 SDK（远程配置或构建配置），脱敏策略至少要在 SDK 侧可配置。</p>
+            </article>
+
+            <article class="todo-card p0">
+              <div class="top"><h4>6. 项目级权限隔离</h4><span class="badge todo">未实现</span></div>
+              <p class="why">当前只有全局权限码，<code>resolveProject()</code> 只判断项目是否存在。任何拥有 <code>monitor:*:view</code> 的用户都能看所有项目，缺少横向越权保护。</p>
+              <div class="evidence">证据：<code>projects.service.ts</code> 的 <code>resolveProject</code>；没有 project_member/project_role 实体；<code>Project.ownerId</code> 只是字段。</div>
+              <p class="accept"><strong>建议：</strong>增加项目成员/角色表；所有按 projectId 查询的 service 统一走成员校验；系统角色可跨项目，普通角色按授权项目过滤。</p>
+            </article>
+          </div>
+
+          <h3>P1：可用性、工程化与治理</h3>
+          <div class="grid2">
+            <article class="todo-card p1">
+              <div class="top"><h4>7. Source Map 上传与堆栈还原</h4><span class="badge todo">未实现</span></div>
+              <p class="why">错误详情只展示原始 stack；没有 release/source map 管理，线上压缩代码难以定位。</p>
+              <div class="evidence">证据：<code>errors/detail/index.vue</code> 直接渲染 <code>sample.stack</code>；仓库无 sourcemap 表/接口。</div>
+              <p class="accept"><strong>建议：</strong>增加 release 与 sourcemap 元数据、上传接口和解析队列；详情页展示还原后的文件/行/列。</p>
+            </article>
+
+            <article class="todo-card p1">
+              <div class="top"><h4>8. 按项目/Key 的限流与配额</h4><span class="badge partial">部分实现</span></div>
+              <p class="why">当前只有 <code>ThrottlerModule</code> 的全局 120 次/分钟，按 IP 维度；没有项目、key、DSN 维度的速率/日配额/滥用告警。</p>
+              <div class="evidence">证据：<code>app.module.ts</code> 的 <code>ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }])</code>。</div>
+              <p class="accept"><strong>建议：</strong>公开入口按 key/project 做滑动窗口限流；超限返回 429；记录 key 使用量并支持项目配额。</p>
+            </article>
+
+            <article class="todo-card p1">
+              <div class="top"><h4>9. 测试补齐</h4><span class="badge partial">部分实现</span></div>
+              <p class="why">SDK 单测较完整，但后端只有 2 个 service spec + 2 个 e2e；前端没有测试；Demo 没有 Playwright；没有压测。</p>
+              <div class="evidence">证据：<code>apps/backend/src/modules/**/*.spec.ts</code> 只有 auth/otlp；<code>apps/web</code> 无测试；<code>test:e2e</code> 当前 auth 套件失败。</div>
+              <p class="accept"><strong>建议：</strong>先修 e2e 隔离（AUTH_DB_TYPE=better-sqlite3、AUTH_DB_DATABASE=:memory: 或唯一 app code），再补 projects/errors/alerts 的 service 测试与前端页面测试。</p>
+            </article>
+
+            <article class="todo-card p1">
+              <div class="top"><h4>10. 文档与版本一致性</h4><span class="badge fix">待修正</span></div>
+              <p class="why">旧文档会把读者带偏：AGENTS/README 仍按 starter 模板描述，需求/架构头部写“尚未实施”，TODO 的 Phase 0/1 复选框也没更新。</p>
+              <div class="evidence">证据：<code>AGENTS.md:3</code>、<code>docs/02-requirements.md:3</code>、<code>docs/03-architecture.md:3</code>、<code>docs/05-development-todo.md</code>。</div>
+              <p class="accept"><strong>建议：</strong>统一以“已实现/部分实现/规划”三态维护；更新测试记录和菜单/权限契约；同步 main 与 pnpm 分支。</p>
+            </article>
+
+            <article class="todo-card p1">
+              <div class="top"><h4>11. 项目统计字段与 Issue 用户数</h4><span class="badge partial">部分实现</span></div>
+              <p class="why"><code>eventCount/errorCount</code> 会由上报递增，但 <code>environmentCount</code>、<code>sdkVersion</code> 是静态值；<code>Issue.userCount</code> 从未更新，始终为 0。</p>
+              <div class="evidence">证据：<code>ingest.service.ts</code> 只 <code>increment(eventCount/errorCount)</code>；<code>saveError</code> 创建 Issue 时写 <code>userCount: 0</code>；没有 distinct user 聚合。</div>
+              <p class="accept"><strong>建议：</strong>按 context.environment / sdk.version 维护项目维度聚合；Issue 用户数按 distinctId 去重统计或异步聚合。</p>
+            </article>
+
+            <article class="todo-card p1">
+              <div class="top"><h4>12. 运营能力：事件定义、导出、分享、实时刷新</h4><span class="badge todo">未实现</span></div>
+              <p class="why">没有事件定义/未登记提示；没有 CSV 导出、Replay 分享/导出、SSE 实时刷新、邮件告警；漏斗只是基础接口。</p>
+              <div class="evidence">证据：仓库无 events definition 实体/页面；<code>api/monitor.ts</code> 无导出/分享/SSE 接口；<code>alerts</code> 只支持 Webhook 测试。</div>
+              <p class="accept"><strong>建议：</strong>按 P1 需求逐项加；优先事件定义和 CSV，再做分享/SSE。</p>
+            </article>
+
+            <article class="todo-card p1">
+              <div class="top"><h4>13. OTLP Protobuf / gRPC</h4><span class="badge partial">部分实现</span></div>
+              <p class="why">当前只支持 OTLP/HTTP JSON；标准 OTLP 导出器常用 protobuf，gRPC 也未接。</p>
+              <div class="evidence">证据：<code>otlp.controller.ts</code> 只接收 JSON body；<code>docs/03-architecture.md</code> 也写的是 HTTP JSON。</div>
+              <p class="accept"><strong>建议：</strong>增加 protobuf content-type 解析与 gRPC receiver；保持 server key 与 JSON 入口兼容。</p>
+            </article>
+
+            <article class="todo-card p1">
+              <div class="top"><h4>14. Replay 隐私与访问审计</h4><span class="badge partial">部分实现</span></div>
+              <p class="why">SDK 有默认遮罩/脱敏和 pause/resume，但管理端没有播放链路，也就没有“谁在何时看了哪个 Replay”的审计；项目设置中的 <code>maskSensitiveData</code> 未下发给 SDK。</p>
+              <div class="evidence">证据：<code>sdk-replay/src/replay.ts</code> 有 pause/resume/setConsent；<code>update-project-settings.dto.ts</code> 的 mask 字段无消费方。</div>
+              <p class="accept"><strong>建议：</strong>播放接口做项目成员 + replay:read 双校验，记录访问审计；按项目策略下发脱敏配置。</p>
+            </article>
+          </div>
+
+          <h3>P2：远期能力</h3>
+          <div class="grid2">
+            <article class="todo-card p2">
+              <div class="top"><h4>15. 跨服务拓扑 / Profiling / 完整 APM</h4><span class="badge plan">远期</span></div>
+              <p class="why">当前 Trace 是 Span 瀑布，没有服务拓扑、自动异常检测、N+1/重复请求识别、Profiling。</p>
+              <p class="accept"><strong>建议：</strong>等数据面和 Trace 量稳定后再做，避免过早扩大范围。</p>
+            </article>
+            <article class="todo-card p2">
+              <div class="top"><h4>16. 多租户 / 计费 / 组织隔离</h4><span class="badge plan">远期</span></div>
+              <p class="why">当前是单组织、多项目；没有租户、计费、配额和跨组织隔离。</p>
+              <p class="accept"><strong>建议：</strong>先完成项目级隔离，再评估是否真的需要多租户。</p>
+            </article>
+            <article class="todo-card p2">
+              <div class="top"><h4>17. 离线补发 / 远程配置 / 面包屑增强</h4><span class="badge plan">远期</span></div>
+              <p class="why">队列在内存，刷新页面会丢；没有远程配置下发；面包屑有基础能力但没有完整 UI 时间线。</p>
+              <p class="accept"><strong>建议：</strong>按 P1 需求做 IndexedDB/离线补发与远程配置，注意隐私和体积。</p>
+            </article>
+            <article class="todo-card p2">
+              <div class="top"><h4>18. 移动端 / 小程序 SDK</h4><span class="badge plan">远期</span></div>
+              <p class="why">当前只有 Web SDK；需求明确首版不做移动端/小程序。</p>
+              <p class="accept"><strong>建议：</strong>保持 contracts 与后端事件模型可扩展，暂不提前实现。</p>
+            </article>
+          </div>
+        </section>
+
+<section id="docs">
+          <h2><span class="no">11</span> 文档待修正清单</h2>
+          <p class="muted">这些不是“代码功能”，但会直接影响后续阅读和生成代码的正确性，建议优先修。</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>位置</th><th>当前内容</th><th>与代码的冲突</th><th>建议</th></tr></thead>
+              <tbody>
+                <tr><td><code>AGENTS.md:3</code></td><td>“当前仓库只包含登录页，尚未包含后端、业务页面和测试运行器”</td><td>已有 backend、11 个监控页面、7 个 SDK/协议包、Vitest</td><td>重写为 dt-monitor 仓库指南，保留原有规则但更新目录/技能/命令事实</td></tr>
+                <tr><td><code>README.md</code></td><td>仍是 dt-frame-starter 启动模板说明</td><td>没有提监控平台、SDK、后端、Docker</td><td>替换为项目 README；或明确区分“模板基座”与“dt-monitor 业务”</td></tr>
+                <tr><td><code>docs/02-requirements.md:3</code></td><td>“状态：待评审，尚未实施”</td><td>大量 P0 已落地</td><td>改为“部分实现”，逐项标注实现状态</td></tr>
+                <tr><td><code>docs/03-architecture.md:3</code></td><td>“状态：设计方案，尚未实现”</td><td>SDK、接入、管理端、MySQL 事实表已实现</td><td>区分“当前实现架构”与“生产目标架构”；把 ClickHouse/Redis Stream/MinIO 标为规划</td></tr>
+                <tr><td><code>docs/05-development-todo.md</code></td><td>Phase 0/1 复选框基本未勾选；验证记录停留在 2026-11-17</td><td>项目、页面、上报、Replay 本地上传已完成</td><td>按实际状态勾选；补充 2026-11-18 的 53 项单测和 e2e 失败记录</td></tr>
+                <tr><td><code>docs/README.md</code></td><td>状态行说 SDK/Demo/上报/Replay 已落地，生产数据面待完成</td><td>大体准确，但未提 e2e 当前失败与文档滞后</td><td>补“当前验证状态”和“已知问题”</td></tr>
+                <tr><td><code>apps/web/src/views/monitor/sdk/index.vue:152</code></td><td>提示“后端 /ingest、OTLP 与 Replay 上传入口尚未实现”</td><td>三个入口都已实现</td><td>改为“入口已实现；生产队列/ClickHouse/对象存储待完成”</td></tr>
+                <tr><td><code>packages/contracts/src/constants.ts</code></td><td><code>SDK_VERSION = '0.1.0'</code></td><td>项目 <code>sdk_version</code> 默认 0.2.0，页面显示 0.2.0</td><td>统一版本来源；或明确 SDK 版本与项目默认版本不同</td></tr>
+                <tr><td><code>package.json</code> scripts</td><td><code>dev</code> 只启动 web</td><td>读者可能以为后端也启动</td><td>README 明确 <code>pnpm --filter @dt-frames/starter-backend dev</code>；或增加 <code>dev:backend</code>/<code>dev:all</code></td></tr>
+                <tr><td><code>.codex/rules</code> / skills</td><td>可能仍按 starter 模板描述目录和依赖</td><td>当前 workspace 已有 8 个 packages 和 backend</td><td>逐份核对；至少更新 source-of-truth、frontend-architecture、backend-nestjs 中的目录事实</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout warn">
+            <strong>注意：</strong>本页不修改任何规范文件，只列出差异。更新 <code>AGENTS.md</code> 与 <code>.codex/</code> 时，按仓库要求同步 <code>main</code> 与 <code>pnpm</code> 分支，并逐文件核对未跟踪内容。
+          </div>
+        </section>
+
+<section id="run">
+          <h2><span class="no">12</span> 运行、环境与验证记录</h2>
+          <div class="grid2">
+            <div class="card">
+              <h3>常用命令</h3>
+              <pre><code>pnpm install
+
+# 只启动管理端（vite，默认 5179）
+pnpm dev
+
+# 启动后端（NestJS，默认 3001）
+pnpm --filter @dt-frames/starter-backend dev
+
+# 数据库迁移与 monitor 菜单/应用种子
+pnpm --filter @dt-frames/starter-backend migration:run
+pnpm --filter @dt-frames/starter-backend seed:monitor-auth
+
+# 测试 / 校验
+pnpm test
+pnpm --filter @dt-frames/starter-backend test:e2e
+pnpm typecheck
+pnpm build
+pnpm lint</code></pre>
+              <p class="small muted">Docker 部署使用 <code>sh docker/deploy.sh docker/.env</code>（Linux/Git Bash/WSL）；Windows 原生 PowerShell 不要直接执行 shell 脚本。</p>
+            </div>
+            <div class="card">
+              <h3>环境与依赖</h3>
+              <ul class="read-list">
+                <li>Node ≥ 20.19，pnpm 12.5.1；只使用 <code>pnpm</code>。</li>
+                <li>本地需要 MySQL 8.4 + Redis 7.4，或直接用 Compose 的 mysql/redis。</li>
+                <li>认证链路还需要 auth-server（默认 3010）、sso-gateway（默认 5174）和 <code>dt_frames</code> 库；本仓库不负责创建认证表。</li>
+                <li>前端环境：<code>apps/web/.env</code>、<code>.env.prod</code>；后端：<code>apps/backend/.env</code>、<code>.env.local</code>；部署：<code>docker/.env</code>。</li>
+                <li>真实密码、JWT 私钥、Webhook secret 不写入仓库；<code>.env.example</code> 只放占位值。</li>
+                <li>访问地址：Web <code>http://localhost:5179</code>，API <code>http://localhost:3001/api</code>，Swagger <code>/api/docs</code>。</li>
+              </ul>
+              <div class="callout info" style="margin-bottom:0">
+                <strong>只读代码不需要启动任何服务。</strong>如果要走登录/菜单/页面主链路，再准备 MySQL、Redis、auth-server、sso-gateway。
+              </div>
+            </div>
+          </div>
+
+          <h3>本轮实际验证（2026-11-18）</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>命令</th><th>结果</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>pnpm test</code></td><td><span class="badge done">53 项通过</span></td><td>contracts 5、sdk-core 10、sdk-browser 12、sdk-tracing 6、sdk-replay 6、sdk-vue 5、sdk-react 2、backend 7</td></tr>
+                <tr><td><code>pnpm --filter @dt-frames/starter-backend test:e2e</code></td><td><span class="badge fix">未全绿</span></td><td>auth 套件 setup 失败：<code>Duplicate entry 'frames' for key 'sys_app.uk_code'</code>，8 项跳过；ingest 套件 5 项通过</td></tr>
+                <tr><td><code>pnpm typecheck</code> / <code>pnpm build</code> / <code>pnpm lint</code></td><td><span class="badge plan">本轮未重跑</span></td><td>文档记录 2026-11-17 通过（typecheck/build；lint 0 error、9 warning），不能当作本轮实测</td></tr>
+                <tr><td>前端单测 / Playwright / 压测</td><td><span class="badge todo">不存在</span></td><td>仓库没有对应配置或脚本，不要声称已通过</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout danger">
+            <strong>e2e 失败的阅读价值：</strong><code>vitest.config.e2e.ts</code> 只设置了业务库 <code>DB_TYPE=better-sqlite3</code>，认证库仍可能继承 <code>.env</code> 的 MySQL 配置，导致测试打到已有 <code>dt_frames</code> 并撞唯一键。修复方向是给认证库也设置独立的内存/临时库，或使用唯一 <code>sys_app.code</code> 并在测试结束清理。
+          </div>
+        </section>
+
+<section id="routes">
+          <h2><span class="no">13</span> 推荐阅读路线</h2>
+          <div class="grid3">
+            <div class="card">
+              <h3>30 分钟：抓骨架</h3>
+              <ol class="read-list">
+                <li><code>packages/contracts/src/types.ts</code></li>
+                <li><code>packages/sdk-core/src/client.ts</code>（只读核心函数）</li>
+                <li><code>apps/backend/src/modules/ingest/ingest.service.ts</code></li>
+                <li><code>apps/backend/src/modules/errors/errors.service.ts</code></li>
+                <li><code>apps/web/src/views/monitor/overview/index.vue</code></li>
+              </ol>
+            </div>
+            <div class="card">
+              <h3>2 小时：能改页面/接口</h3>
+              <ol class="read-list">
+                <li>第 0–3 阶段：协议、SDK、后端入口与领域查询。</li>
+                <li><code>apps/web/src/main.ts</code> + <code>http.ts</code> + <code>api/monitor.ts</code>。</li>
+                <li>挑一个页面（建议 errors 或 projects）完整读。</li>
+                <li>跑 <code>pnpm test</code>，再跑一次页面。</li>
+              </ol>
+            </div>
+            <div class="card">
+              <h3>1 天：能设计数据面</h3>
+              <ol class="read-list">
+                <li>完整读第 0–5 阶段。</li>
+                <li>读 <code>docs/03</code> 的 5.2/5.4/5.6/5.7 与 ADR。</li>
+                <li>对照第 10 节 P0，画一版 Redis Stream → ClickHouse → 查询仓库的改造图。</li>
+                <li>先补 e2e 隔离和项目级权限，再动数据面。</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="callout ok" style="margin-top:16px">
+            <strong>如果只做一件事：</strong>先把文档与 e2e 修到“可信”，再开始数据面重构。
+            当前最大的风险不是功能少，而是文档说“没实现”、代码说“已实现”、测试说“没全绿”，三者不一致会持续误导后续开发。
+          </div>
+        </section>
+
+        <div class="footer">
+          jianwei1 / dt-monitor 阅读手册 · 生成于 2026-11-18 · 以仓库当前代码为准
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const links = Array.from(document.querySelectorAll('#toc a'));
+      const sections = links
+        .map((link) => document.querySelector(link.getAttribute('href')))
+        .filter(Boolean);
+
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            const visible = entries
+              .filter((entry) => entry.isIntersecting)
+              .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (!visible) return;
+            links.forEach((link) => {
+              link.classList.toggle('active', link.getAttribute('href') === '#' + visible.target.id);
+            });
+          },
+          { rootMargin: '-20% 0px -65% 0px', threshold: [0.05, 0.2, 0.5] },
+        );
+        sections.forEach((section) => observer.observe(section));
+      }
+
+      const filterBar = document.getElementById('status-filter');
+      const statusTable = document.getElementById('status-table');
+      if (filterBar && statusTable) {
+        const rows = Array.from(statusTable.querySelectorAll('tbody tr'));
+        filterBar.addEventListener('click', (event) => {
+          const button = event.target.closest('button[data-filter]');
+          if (!button) return;
+          const filter = button.dataset.filter;
+          filterBar.querySelectorAll('button').forEach((item) => item.classList.toggle('active', item === button));
+          rows.forEach((row) => {
+            row.hidden = filter !== 'all' && row.dataset.status !== filter;
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
