@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 FROM node:22-bookworm-slim AS builder
 
 ARG NPM_REGISTRY=https://registry.npmjs.org
