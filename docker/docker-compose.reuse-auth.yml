@@ -12,14 +12,20 @@ services:
     networks:
       - default
       - auth
+    environment:
+      DB_HOST: jianwei1-mysql
   backend:
     networks:
       - default
       - auth
+    environment:
+      DB_HOST: jianwei1-mysql
   seed:
     networks:
       - default
       - auth
+    environment:
+      DB_HOST: jianwei1-mysql
   web:
     networks:
       - default

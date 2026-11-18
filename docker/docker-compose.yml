@@ -44,6 +44,10 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --default-time-zone=+08:00
+    networks:
+      default:
+        aliases:
+          - jianwei1-mysql
     environment:
       TZ: Asia/Shanghai
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in docker/.env}"
@@ -78,6 +82,10 @@ services:
       - everysec
       - --maxmemory-policy
       - noeviction
+    networks:
+      default:
+        aliases:
+          - jianwei1-redis
     ports:
       - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
     volumes:
