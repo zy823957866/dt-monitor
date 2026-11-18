@@ -95,6 +95,24 @@ AUTH_SERVER_URL=http://auth-server:3010/api
 AUTH_API_UPSTREAM=http://auth-server:3010
 ```
 
+认证项目的网络名通常带 Compose 项目前缀（例如 `dt-frame_dt-frame-net`）。此时使用
+`docker/docker-compose.reuse-auth.yml` 覆盖文件把 monitor 服务接入该外部网络：
+
+```dotenv
+AUTH_NETWORK=dt-frame_dt-frame-net
+AUTH_DB_HOST=dt-frame-mysql
+REDIS_HOST=dt-frame-redis
+AUTH_SERVER_URL=http://dt-frame-auth-server:3010/api
+AUTH_API_UPSTREAM=http://dt-frame-auth-server:3010
+```
+
+```sh
+docker compose --env-file docker/.env \
+  -f docker/docker-compose.yml \
+  -f docker/docker-compose.reuse-auth.yml \
+  up -d
+```
+
 Redis 必须共享：auth-server 写入的在线会话 key 为
 `dt-frame:monitor:online:<jti>`，本后端会读取同一 key。使用本 Compose Redis 时，认证服务应接入
 `jianwei1-net`，或通过宿主机回环端口 `127.0.0.1:6379` 访问。

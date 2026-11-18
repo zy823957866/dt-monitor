@@ -6,9 +6,7 @@ import type { Request } from 'express'
 import type { AuthUser } from '../../common/decorators/current-user.decorator'
 import { RedisService } from '../../redis/redis.service'
 import type { JwtPayload } from './jwt.types'
-import type { AuthServerConfig } from '../../config/configuration'
 import { JwksService } from './jwks.service'
-import { resolvePublicKeyPem } from './jwt.utils'
 
 /** JWT 策略：校验统一认证中心令牌签名、受众与共享在线会话。 */
 @Injectable()
@@ -19,14 +17,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 		jwksService: JwksService,
 	) {
 		const accessSecret = config.getOrThrow<string>('jwt.accessSecret')
-		const publicKeyPem = resolvePublicKeyPem(config)
-		const authServer = config.get<AuthServerConfig>('authServer')
-		const supportsRs256 = Boolean(publicKeyPem || authServer?.url)
 		super({
 			jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
 			ignoreExpiration: false,
 			audience: 'monitor',
-			algorithms: supportsRs256 ? ['RS256'] : ['HS256'],
+			// 认证中心可签发 RS256（JWKS 公钥）或 HS256（共享密钥）令牌；
+			// secretOrKeyProvider 按令牌头 alg 动态选择验签密钥。
+			algorithms: ['RS256', 'HS256'],
 			secretOrKeyProvider: (
 				_request: Request,
 				rawJwtToken: string,

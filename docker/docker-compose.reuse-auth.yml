@@ -1,0 +1,31 @@
+# 复用已有认证栈的 Compose 覆盖文件。
+# 把 monitor 的业务服务接入认证项目的 Docker 网络，从而访问 auth-server、
+# 认证库（dt_frames）与共享 Redis 在线会话；业务库仍使用本项目的 mysql。
+#
+# 用法：
+#   docker compose --env-file docker/.env \
+#     -f docker/docker-compose.yml \
+#     -f docker/docker-compose.reuse-auth.yml \
+#     up -d
+services:
+  migrate:
+    networks:
+      - default
+      - auth
+  backend:
+    networks:
+      - default
+      - auth
+  seed:
+    networks:
+      - default
+      - auth
+  web:
+    networks:
+      - default
+      - auth
+
+networks:
+  auth:
+    name: ${AUTH_NETWORK:?set AUTH_NETWORK in docker/.env}
+    external: true
