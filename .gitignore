@@ -1,0 +1,17 @@
+node_modules
+dist
+.husky/_
+.turbo
+.cache
+*.log
+.DS_Store
+auto-imports.d.ts
+components.d.ts
+*.tsbuildinfo
+.pnpm-store
+.env
+.env.local
+.env.*.local
+apps/backend/.env
+apps/backend/.env.local
+apps/backend/data/

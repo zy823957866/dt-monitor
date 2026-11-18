@@ -1,0 +1,49 @@
+{
+  "name": "jianwei1",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=20.19.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "postinstall": "node scripts/fix-resolver.cjs",
+    "prepare": "husky",
+    "commit": "git-cz",
+    "lint:commit": "commitlint --last --verbose",
+    "dev": "pnpm --filter @dt-frames/starter-web dev",
+    "build": "pnpm -r --if-present build",
+    "preview": "pnpm --filter @dt-frames/starter-web preview",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.3",
+    "@commitlint/config-conventional": "^20.5.3",
+    "@dt-frames/eslint-config": "^5.0.0",
+    "@dt-frames/ts-config": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "commitizen": "^4.3.2",
+    "cz-git": "^1.14.0",
+    "eslint": "^10.13.0",
+    "husky": "^9.1.7",
+    "jsdom": "^31.0.1",
+    "prettier": "^3.9.10",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.1.0",
+    "vue": "^3.5.45"
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-git"
+    }
+  }
+}

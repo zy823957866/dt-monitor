@@ -1,0 +1,46 @@
+{
+  "name": "@dt-frames/starter-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@dt-frames/core": "^5.0.0",
+    "@dt-frames/hooks": "^5.0.0",
+    "@dt-frames/icons": "^5.0.0",
+    "@dt-frames/layout": "^5.0.2",
+    "@dt-frames/starter-core": "workspace:*",
+    "@dt-frames/ui": "^5.0.0",
+    "@element-plus/icons-vue": "^2.3.0",
+    "@vueuse/core": "^13.1.0",
+    "@vueuse/shared": "^13.4.0",
+    "@wangeditor-next/editor": "^5.6.49",
+    "@wangeditor-next/editor-for-vue": "^5.1.14",
+    "axios": "^1.10.0",
+    "dayjs": "^1.11.13",
+    "echarts": "^6.1.0",
+    "element-plus": "^2.9.0",
+    "lodash-es": "4.17.21",
+    "pinia": "^3.0.0",
+    "unocss": "^66.0.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0",
+    "vxe-pc-ui": "^4.14.29",
+    "vxe-table": "^4.19.7"
+  },
+  "devDependencies": {
+    "@dt-frames/vite-plugin": "5.0.2",
+    "@types/lodash-es": "4.17.12",
+    "fast-glob": "^3.3.3",
+    "sass-embedded": "^1.104.1",
+    "unplugin-vue-components": "^29.0.0",
+    "vite": "^7.0.0",
+    "vite-plugin-svg-icons": "^2.0.1",
+    "vue-tsc": "^3.0.0"
+  }
+}
