@@ -1,35 +1,32 @@
+// ???? Jenkins ?? dt-monitor-build-deploy ??????????Jenkins ???????
+// ???? compose ????? docker:29-cli ??????? Docker????? BuildKit?
+// ?? Docker 29 ???????? VM ??????????
 pipeline {
 	agent any
 
 	options {
 		disableConcurrentBuilds()
-		timeout(time: 30, unit: 'MINUTES')
-	}
-
-	parameters {
-		string(name: 'DEPLOY_ENV_FILE', defaultValue: '/etc/jianwei1/jianwei1.env', description: '部署机上的 Compose 环境文件，不得放在 Git 工作区')
-		string(name: 'BACKEND_IMAGE', defaultValue: 'jianwei1-backend:local', description: '后端镜像名')
-		string(name: 'WEB_IMAGE', defaultValue: 'jianwei1-web:local', description: '前端镜像名')
-		booleanParam(name: 'RUN_SEED', defaultValue: true, description: '部署后幂等写入 monitor 应用、菜单和权限码')
-		string(name: 'WEB_PORT', defaultValue: '8080', description: '宿主机 Web 端口')
-		string(name: 'SMOKE_URL', defaultValue: '', description: '部署后健康检查地址；留空时使用 WEB_PORT 生成')
+		timeout(time: 60, unit: 'MINUTES')
+		buildDiscarder(logRotator(numToKeepStr: '10'))
 	}
 
 	environment {
-		COMPOSE_FILE = 'docker/docker-compose.yml'
-		COMPOSE_PROJECT_NAME = 'jianwei1'
+		DEPLOY_ENV = '/etc/jianwei1/jianwei1.env'
 	}
 
 	stages {
-		stage('Validate') {
+		stage('Checkout') {
 			steps {
-				sh '''
-					set -eu
-					test -f "$DEPLOY_ENV_FILE"
-					command -v docker >/dev/null
-					docker compose version
-					sh -n docker/deploy.sh
-				'''
+				checkout([
+					$class: 'GitSCM',
+					branches: [[name: '*/main']],
+					extensions: [[$class: 'CloneOption', depth: 1, shallow: true]],
+					userRemoteConfigs: [[
+						credentialsId: 'github-https',
+						url: 'https://github.com/zy823957866/dt-monitor.git'
+					]]
+				])
+				sh 'git rev-parse --short HEAD'
 			}
 		}
 
@@ -37,7 +34,18 @@ pipeline {
 			steps {
 				sh '''
 					set -eu
-					docker compose --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" build --pull
+					HOST_WS="/var/lib/docker/volumes/jenkins_home/_data/workspace/$JOB_NAME"
+					docker run --rm \
+						-e DOCKER_BUILDKIT=1 -e COMPOSE_DOCKER_CLI_BUILD=1 \
+						-v /var/run/docker.sock:/var/run/docker.sock \
+						-v "$HOST_WS":/workspace \
+						-v /etc/jianwei1:/etc/jianwei1:ro \
+						-w /workspace \
+						docker:29-cli \
+						docker compose --env-file "$DEPLOY_ENV" \
+							-f docker/docker-compose.yml \
+							-f docker/docker-compose.reuse-auth.yml \
+							build backend web
 				'''
 			}
 		}
@@ -46,11 +54,29 @@ pipeline {
 			steps {
 				sh '''
 					set -eu
-					docker compose --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" up -d --remove-orphans
-					docker compose --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" restart web
-					if [ "$RUN_SEED" = "true" ]; then
-						docker compose --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" --profile tools run --rm -T seed
-					fi
+					HOST_WS="/var/lib/docker/volumes/jenkins_home/_data/workspace/$JOB_NAME"
+					docker run --rm \
+						-e DOCKER_BUILDKIT=1 -e COMPOSE_DOCKER_CLI_BUILD=1 \
+						-v /var/run/docker.sock:/var/run/docker.sock \
+						-v "$HOST_WS":/workspace \
+						-v /etc/jianwei1:/etc/jianwei1:ro \
+						-w /workspace \
+						docker:29-cli \
+						docker compose --env-file "$DEPLOY_ENV" \
+							-f docker/docker-compose.yml \
+							-f docker/docker-compose.reuse-auth.yml \
+							up -d --remove-orphans --no-build
+					docker run --rm \
+						-e DOCKER_BUILDKIT=1 -e COMPOSE_DOCKER_CLI_BUILD=1 \
+						-v /var/run/docker.sock:/var/run/docker.sock \
+						-v "$HOST_WS":/workspace \
+						-v /etc/jianwei1:/etc/jianwei1:ro \
+						-w /workspace \
+						docker:29-cli \
+						docker compose --env-file "$DEPLOY_ENV" \
+							-f docker/docker-compose.yml \
+							-f docker/docker-compose.reuse-auth.yml \
+							--profile tools run --rm -T seed
 				'''
 			}
 		}
@@ -59,20 +85,32 @@ pipeline {
 			steps {
 				sh '''
 					set -eu
-					SMOKE_TARGET="${SMOKE_URL:-http://127.0.0.1:${WEB_PORT}/api/health}"
+					WEB=$(docker ps -q --filter "label=com.docker.compose.project=jianwei1" --filter "label=com.docker.compose.service=web")
+					[ -n "$WEB" ] || { echo "web container not found"; exit 1; }
 					attempt=1
-					while [ "$attempt" -le 30 ]; do
-						if curl -fsS "$SMOKE_TARGET" >/dev/null; then
-							echo "Health check passed: $SMOKE_TARGET"
+					while [ "$attempt" -le 60 ]; do
+						if docker exec "$WEB" wget -qO- http://127.0.0.1/healthz >/dev/null 2>&1 \
+						   && docker exec "$WEB" wget -qO- http://127.0.0.1/api/health >/dev/null 2>&1; then
+							echo "smoke ok"
+							docker exec "$WEB" wget -qO- http://127.0.0.1/api/health
 							exit 0
 						fi
 						sleep 2
 						attempt=$((attempt + 1))
 					done
-					echo "Health check failed: $SMOKE_TARGET" >&2
-					docker compose --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" ps >&2 || true
-					docker compose --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" logs --tail=200 backend web migrate >&2 || true
+					docker ps -a --filter "label=com.docker.compose.project=jianwei1" || true
+					docker logs --tail=120 jianwei1-backend-1 2>&1 || true
+					docker logs --tail=60 jianwei1-web-1 2>&1 || true
 					exit 1
+				'''
+			}
+		}
+
+		stage('Verify portal registration') {
+			steps {
+				sh '''
+					set -u
+					docker exec dt-frame-mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -B -e "SELECT code,status,path,base_url FROM dt_frames.sys_app WHERE code=\"monitor\" LIMIT 1"' 2>/dev/null || true
 				'''
 			}
 		}
@@ -81,8 +119,9 @@ pipeline {
 	post {
 		failure {
 			sh '''
-				docker compose --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" ps || true
-				docker compose --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" logs --tail=200 backend web migrate || true
+				docker ps -a --filter "label=com.docker.compose.project=jianwei1" || true
+				docker logs --tail=200 jianwei1-backend-1 2>&1 || true
+				docker logs --tail=100 jianwei1-web-1 2>&1 || true
 			'''
 		}
 	}

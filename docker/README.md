@@ -160,15 +160,18 @@ docker compose --env-file docker/.env -f docker/docker-compose.yml logs -f backe
 
 ## Jenkins
 
-根目录 `Jenkinsfile` 适用于 Jenkins agent 已安装 Docker Engine 和 Compose v2、
-且可以直接管理该 VM 容器的场景。若 Jenkins 本身在容器中运行，需要挂载
-`/var/run/docker.sock`，或改用带 Docker CLI 的宿主机 agent。
+Jenkins 自身运行在 `jenkins/jenkins:lts` 容器中，没有 Docker CLI，因此流水线通过
+`docker:29-cli` 容器（挂载 `/var/run/docker.sock`）调用宿主机 Docker。根目录 `Jenkinsfile`
+与任务 `dt-monitor-build-deploy` 的内联脚本保持一致，阶段为 Checkout、Build images、
+Deploy、Smoke test、Verify portal registration。
 
 1. 在部署机创建 `/etc/jianwei1/jianwei1.env`，内容来自 `docker/.env.example`。
-2. 设置权限：`chown jenkins:jenkins /etc/jianwei1/jianwei1.env && chmod 600 /etc/jianwei1/jianwei1.env`。
-3. 新建 Pipeline 任务，指向仓库根 `Jenkinsfile`。
-4. 按环境填写 `DEPLOY_ENV_FILE`、`BACKEND_IMAGE`、`WEB_IMAGE`、`WEB_PORT`；如有自定义健康地址再填 `SMOKE_URL`。
-5. 首次发布保留 `RUN_SEED=true`；日常只更新镜像时可关闭。
+2. 设置权限：`chown root:root /etc/jianwei1/jianwei1.env && chmod 600 /etc/jianwei1/jianwei1.env`。
+3. 任务从 `https://github.com/zy823957866/dt-monitor.git` 拉取 `main`，凭据 ID 为 `github-https`。
+4. 同时使用两个 compose 文件：`docker/docker-compose.yml` 与
+   `docker/docker-compose.reuse-auth.yml`（后者接入现有 `dt-frame_dt-frame-net` 认证网络）。
+5. 构建必须开启 BuildKit（`DOCKER_BUILDKIT=1`）：Docker 29 的传统构建器在该 VM 上会卡死在
+   容器回收，且 BuildKit 能直接复用已拉取的 `node`/`nginx` 基础镜像。
 
 流水线阶段为 Validate、Build images、Deploy、Smoke test。失败时输出容器状态和 backend/web/migrate
 最近 200 行日志。构建在部署机本地完成，默认不打镜像仓库；如需多机部署，应在 Jenkins 中增加
