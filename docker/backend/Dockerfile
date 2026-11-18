@@ -2,6 +2,9 @@
 
 FROM node:22-bookworm-slim AS builder
 
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ARG DEBIAN_MIRROR=deb.debian.org
+
 ENV PNPM_HOME=/pnpm \
 	PATH=/pnpm:$PATH \
 	CI=true \
@@ -9,10 +12,14 @@ ENV PNPM_HOME=/pnpm \
 
 WORKDIR /workspace
 
-RUN apt-get update \
+RUN if [ "$DEBIAN_MIRROR" != "deb.debian.org" ]; then \
+		sed -i "s|deb.debian.org|${DEBIAN_MIRROR}|g" /etc/apt/sources.list.d/debian.sources; \
+	fi \
+	&& apt-get update \
 	&& apt-get install -y --no-install-recommends python3 make g++ \
 	&& rm -rf /var/lib/apt/lists/*
-RUN npm install --global pnpm@12.5.1
+RUN npm config set registry "$NPM_REGISTRY" \
+	&& npm install --global pnpm@12.5.1
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY scripts ./scripts

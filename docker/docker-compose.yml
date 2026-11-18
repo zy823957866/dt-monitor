@@ -93,6 +93,9 @@ services:
     build:
       context: ..
       dockerfile: docker/backend/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-deb.debian.org}
     restart: "no"
     command:
       - node
@@ -113,6 +116,9 @@ services:
     build:
       context: ..
       dockerfile: docker/backend/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-deb.debian.org}
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
@@ -135,6 +141,9 @@ services:
     build:
       context: ..
       dockerfile: docker/backend/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-deb.debian.org}
     restart: "no"
     command:
       - node
@@ -155,6 +164,8 @@ services:
       context: ..
       dockerfile: docker/web/Dockerfile
       args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-deb.debian.org}
         VITE_SSO_URL: "${VITE_SSO_URL:?set VITE_SSO_URL in docker/.env}"
         VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-monitor}
         VITE_APP_CODE: ${VITE_APP_CODE:-monitor}

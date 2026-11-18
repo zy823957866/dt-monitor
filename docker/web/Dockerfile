@@ -2,6 +2,8 @@
 
 FROM node:22-bookworm-slim AS builder
 
+ARG NPM_REGISTRY=https://registry.npmjs.org
+
 ENV PNPM_HOME=/pnpm \
 	PATH=/pnpm:$PATH \
 	CI=true \
@@ -9,7 +11,8 @@ ENV PNPM_HOME=/pnpm \
 
 WORKDIR /workspace
 
-RUN npm install --global pnpm@12.5.1
+RUN npm config set registry "$NPM_REGISTRY" \
+	&& npm install --global pnpm@12.5.1
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY scripts ./scripts

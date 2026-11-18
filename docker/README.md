@@ -53,6 +53,10 @@ chmod 600 docker/.env
 - `CORS_ORIGINS`：允许管理端和上报来源访问的 Origin。
 - `AUTH_SERVER_URL`、`AUTH_API_UPSTREAM`。
 
+构建机访问官方 apt/npm 源较慢时，可在 `docker/.env` 设置 `DEBIAN_MIRROR`（如
+`mirrors.aliyun.com`）和 `NPM_REGISTRY`（如 `https://registry.npmmirror.com`），
+构建参数会写入镜像构建阶段，不影响运行时依赖。
+
 建议生成随机密钥：
 
 ```sh
