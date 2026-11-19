@@ -117,7 +117,7 @@ export class UserEndpointService {
 			type: menu.type,
 			order: menu.order,
 			authCode: menu.authCode,
-			icon: menu.iconName || menu.icon || undefined,
+			icon: menu.icon || menu.iconName || undefined,
 			show: menu.hideInMenu === 0,
 			keepAlive: Boolean(menu.keepAlive),
 			affixTab: Boolean(menu.affixTab),

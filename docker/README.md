@@ -9,7 +9,7 @@ Compose 启动四个长期服务和一个一次性迁移服务：
 - `mysql`：`dt_monitor` 业务库；首次初始化时同时创建 `dt_frames` 认证库。
 - `redis`：后端会话与缓存；必须与 auth-server 使用同一实例。
 - `migrate`：每次 `docker compose up` 前执行 `dt_monitor` migration，完成后 `monitor-backend` 才启动。
-- `seed`：仅通过 `tools` profile 手动执行，幂等写入 monitor 的 `sys_app`、`sys_menu` 和权限码。
+- `seed`：仅首次部署时通过 `tools` profile 手动执行，只补齐缺失的 monitor 应用、菜单和权限码。
 
 浏览器始终同源访问：
 
@@ -23,7 +23,7 @@ Swagger 的 `/api/docs` 在 Nginx 入口返回 404，只允许在容器网络内
 
 运行时的 `GET /user/menus` 从 `dt_frames.sys_menu` 读取菜单。仓库中的
 `apps/backend/scripts/seed-monitor-auth.ts` 是初始化这些数据库记录的来源，不是运行时菜单来源。
-部署时执行 `seed` 服务会把 23 条 monitor 菜单与按钮权限码幂等写入认证库。
+日常发布不会执行 `seed`，也不会修改权限中心中已有的菜单、图标和排序。首次部署需要时手动执行一次。
 
 `seed` 不创建用户、普通角色或普通角色的菜单授权。系统角色用户可直接看到 monitor 的全部菜单；
 普通角色仍需在权限中心分配 `sys_role_menu`。
@@ -134,7 +134,7 @@ sh docker/deploy.sh docker/.env
 
 1. 构建 backend 和 web 镜像。
 2. 启动 MySQL、Redis、migration、monitor-backend、web。
-3. 默认执行一次 `seed`。
+3. 首次部署需要初始化认证数据时，手动执行一次 `seed`；日常发布不执行。
 4. 轮询 `http://127.0.0.1:<WEB_PORT>/api/health`。
 
 手动分步执行：
@@ -145,10 +145,10 @@ docker compose --env-file docker/.env -f docker/docker-compose.yml up -d --remov
 docker compose --env-file docker/.env -f docker/docker-compose.yml --profile tools run --rm -T seed
 ```
 
-仅更新应用、不写菜单：
+手动初始化或补齐缺失菜单（已存在的菜单不会被覆盖）：
 
 ```sh
-RUN_SEED=false sh docker/deploy.sh docker/.env
+RUN_SEED=true sh docker/deploy.sh docker/.env
 ```
 
 查看状态与日志：

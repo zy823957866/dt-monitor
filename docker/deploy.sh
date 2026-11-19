@@ -20,7 +20,7 @@ compose build --pull
 compose up -d --remove-orphans
 compose restart web
 
-if [ "${RUN_SEED:-true}" = "true" ]; then
+if [ "${RUN_SEED:-false}" = "true" ]; then
 	compose --profile tools run --rm -T seed
 fi
 

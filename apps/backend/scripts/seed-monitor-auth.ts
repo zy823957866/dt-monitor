@@ -333,20 +333,17 @@ async function ensureMonitorApp(
 }
 
 /**
- * 幂等写入 monitor 页面菜单与按钮权限码。
+ * 仅补齐缺失的 monitor 页面菜单与按钮权限码。
+ * 已存在的菜单不做任何修改，避免发布覆盖权限中心中的名称、图标、排序和授权配置。
  * 只写 dt_frames.sys_menu，不创建用户、角色，也不修改角色菜单授权。
  * @param connection dt_frames 连接
- * @returns 写入的菜单数量
+ * @returns 检查的菜单定义数量
  */
 async function seedMonitorMenus(connection: mysql.Connection): Promise<number> {
 	for (const menu of MONITOR_MENUS) {
 		await connection.query(
-			'INSERT INTO `sys_menu` (`id`, `app_id`, `zh_cn_name`, `parent_id`, `type`, `path`, ' +
-				'`order`, `hide_in_menu`, `auth_code`, `deleted`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0) ' +
-				'ON DUPLICATE KEY UPDATE `app_id` = VALUES(`app_id`), `zh_cn_name` = VALUES(`zh_cn_name`), ' +
-				'`parent_id` = VALUES(`parent_id`), `type` = VALUES(`type`), `path` = VALUES(`path`), ' +
-				'`order` = VALUES(`order`), `hide_in_menu` = VALUES(`hide_in_menu`), ' +
-				'`auth_code` = VALUES(`auth_code`), `deleted` = 0, `update_time` = NOW()',
+			'INSERT IGNORE INTO `sys_menu` (`id`, `app_id`, `zh_cn_name`, `parent_id`, `type`, `path`, ' +
+				'`order`, `hide_in_menu`, `auth_code`, `deleted`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
 			[
 				menu.id,
 				'monitor',
@@ -374,7 +371,7 @@ async function main(): Promise<void> {
 			`monitor 认证数据已就绪：appId=${appId}, menus=${menuCount}, ` +
 				`callback=${baseUrl}/sso/callback, 系统角色授权=${roleCount} 个`,
 		)
-		console.log('用户、角色与角色菜单授权仍由权限中心维护，脚本不会写入这些数据。')
+		console.log('已有菜单不会被覆盖；用户、角色与角色菜单授权仍由权限中心维护。')
 	} finally {
 		await connection.end()
 	}

@@ -66,17 +66,7 @@ pipeline {
 							-f docker/docker-compose.yml \
 							-f docker/docker-compose.reuse-auth.yml \
 							up -d --remove-orphans --no-build
-					docker run --rm \
-						-e DOCKER_BUILDKIT=1 -e COMPOSE_DOCKER_CLI_BUILD=1 \
-						-v /var/run/docker.sock:/var/run/docker.sock \
-						-v "$HOST_WS":/workspace \
-						-v /etc/jianwei1:/etc/jianwei1:ro \
-						-w /workspace \
-						docker:29-cli \
-						docker compose --env-file "$DEPLOY_ENV" \
-							-f docker/docker-compose.yml \
-							-f docker/docker-compose.reuse-auth.yml \
-							--profile tools run --rm -T seed
+					# 日常发布不执行 seed，避免覆盖权限中心中已配置的菜单与图标。
 				'''
 			}
 		}
