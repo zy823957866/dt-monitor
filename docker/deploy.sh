@@ -38,5 +38,5 @@ done
 
 echo "Health check failed: $SMOKE_URL" >&2
 compose ps >&2 || true
-compose logs --tail=200 backend web migrate >&2 || true
+compose logs --tail=200 monitor-backend web migrate >&2 || true
 exit 1

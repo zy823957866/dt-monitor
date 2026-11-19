@@ -45,7 +45,7 @@ RUN pnpm --filter @dt-frames/starter-web typecheck \
 
 FROM nginx:1.27-alpine AS runtime
 
-ENV BACKEND_UPSTREAM=backend:3001 \
+ENV BACKEND_UPSTREAM=monitor-backend:3001 \
 	AUTH_API_UPSTREAM=http://host.docker.internal:3010
 
 COPY docker/web/nginx/default.conf.template /etc/nginx/templates/default.conf.template

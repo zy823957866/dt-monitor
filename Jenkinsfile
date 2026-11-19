@@ -45,7 +45,7 @@ pipeline {
 						docker compose --env-file "$DEPLOY_ENV" \
 							-f docker/docker-compose.yml \
 							-f docker/docker-compose.reuse-auth.yml \
-							build backend web
+							build monitor-backend web
 				'''
 			}
 		}
@@ -99,7 +99,7 @@ pipeline {
 						attempt=$((attempt + 1))
 					done
 					docker ps -a --filter "label=com.docker.compose.project=jianwei1" || true
-					docker logs --tail=120 jianwei1-backend-1 2>&1 || true
+					docker logs --tail=120 jianwei1-monitor-backend-1 2>&1 || true
 					docker logs --tail=60 jianwei1-web-1 2>&1 || true
 					exit 1
 				'''
@@ -120,7 +120,7 @@ pipeline {
 		failure {
 			sh '''
 				docker ps -a --filter "label=com.docker.compose.project=jianwei1" || true
-				docker logs --tail=200 jianwei1-backend-1 2>&1 || true
+				docker logs --tail=200 jianwei1-monitor-backend-1 2>&1 || true
 				docker logs --tail=100 jianwei1-web-1 2>&1 || true
 			'''
 		}

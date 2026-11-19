@@ -14,7 +14,7 @@ services:
       - auth
     environment:
       DB_HOST: jianwei1-mysql
-  backend:
+  monitor-backend:
     networks:
       - default
       - auth

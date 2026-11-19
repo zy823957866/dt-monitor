@@ -5,15 +5,15 @@
 Compose 启动四个长期服务和一个一次性迁移服务：
 
 - `web`：Nginx，提供静态页面并代理 `/api`、`/uploads`、`/auth-api`。
-- `backend`：NestJS API。
+- `monitor-backend`：NestJS API。
 - `mysql`：`dt_monitor` 业务库；首次初始化时同时创建 `dt_frames` 认证库。
 - `redis`：后端会话与缓存；必须与 auth-server 使用同一实例。
-- `migrate`：每次 `docker compose up` 前执行 `dt_monitor` migration，完成后 `backend` 才启动。
+- `migrate`：每次 `docker compose up` 前执行 `dt_monitor` migration，完成后 `monitor-backend` 才启动。
 - `seed`：仅通过 `tools` profile 手动执行，幂等写入 monitor 的 `sys_app`、`sys_menu` 和权限码。
 
 浏览器始终同源访问：
 
-- `/api`、`/uploads` -> `backend:3001`
+- `/api`、`/uploads` -> `monitor-backend:3001`
 - `/auth-api` -> `AUTH_API_UPSTREAM`，前缀重写为 `/api`
 - 其他路径 -> Vue SPA
 
@@ -133,7 +133,7 @@ sh docker/deploy.sh docker/.env
 脚本执行：
 
 1. 构建 backend 和 web 镜像。
-2. 启动 MySQL、Redis、migration、backend、web。
+2. 启动 MySQL、Redis、migration、monitor-backend、web。
 3. 默认执行一次 `seed`。
 4. 轮询 `http://127.0.0.1:<WEB_PORT>/api/health`。
 
@@ -155,7 +155,7 @@ RUN_SEED=false sh docker/deploy.sh docker/.env
 
 ```sh
 docker compose --env-file docker/.env -f docker/docker-compose.yml ps
-docker compose --env-file docker/.env -f docker/docker-compose.yml logs -f backend web migrate
+docker compose --env-file docker/.env -f docker/docker-compose.yml logs -f monitor-backend web migrate
 ```
 
 ## Jenkins
@@ -173,7 +173,7 @@ Deploy、Smoke test、Verify portal registration。
 5. 构建必须开启 BuildKit（`DOCKER_BUILDKIT=1`）：Docker 29 的传统构建器在该 VM 上会卡死在
    容器回收，且 BuildKit 能直接复用已拉取的 `node`/`nginx` 基础镜像。
 
-流水线阶段为 Validate、Build images、Deploy、Smoke test。失败时输出容器状态和 backend/web/migrate
+流水线阶段为 Validate、Build images、Deploy、Smoke test。失败时输出容器状态和 monitor-backend/web/migrate
 最近 200 行日志。构建在部署机本地完成，默认不打镜像仓库；如需多机部署，应在 Jenkins 中增加
 registry push/pull 步骤，并让 `BACKEND_IMAGE`、`WEB_IMAGE` 指向同一个 registry 仓库。
 
@@ -183,7 +183,7 @@ registry push/pull 步骤，并让 `BACKEND_IMAGE`、`WEB_IMAGE` 指向同一个
 
 ## 更新与回滚
 
-- 更新：重新执行 Jenkins 流水线；`migrate` 在 backend 启动前自动执行。
+- 更新：重新执行 Jenkins 流水线；`migrate` 在 monitor-backend 启动前自动执行。
 - 回滚代码：把镜像 tag 切回上一版本后执行 `docker compose up -d`。数据库 migration 不会自动回滚。
 - 回滚 migration 必须人工评估并执行 `migration:revert`，不要在生产发布流水线中自动回滚。
 
@@ -198,10 +198,10 @@ registry push/pull 步骤，并让 `BACKEND_IMAGE`、`WEB_IMAGE` 指向同一个
 
 ## 常见问题
 
-- `dt_frames` 表不存在：先运行认证项目 migration，再启动 backend 和 seed。
-- 登录后 401：确认 auth-server 与 backend 使用同一 Redis，且 `JWT_PUBLIC_KEY` 或 JWKS 可访问。
+- `dt_frames` 表不存在：先运行认证项目 migration，再启动 monitor-backend 和 seed。
+- 登录后 401：确认 auth-server 与 monitor-backend 使用同一 Redis，且 `JWT_PUBLIC_KEY` 或 JWKS 可访问。
 - OIDC 回调拒绝：确认 `PUBLIC_BASE_URL` 没有结尾 `/`，并执行 seed 或手工更新 `sys_app.redirect_uris`。
 - 页面 404：Nginx 已配置 SPA fallback；检查浏览器是否访问了错误域名或路由基路径。
-- MySQL 端口冲突：修改 `MYSQL_HOST_PORT`；容器内部 backend 仍使用 `mysql:3306`。
+- MySQL 端口冲突：修改 `MYSQL_HOST_PORT`；容器内部 monitor-backend 仍使用 `mysql:3306`。
 - 使用外部认证库但端口冲突：把 `MYSQL_HOST_PORT` 改为其他回环端口，并设置
   `AUTH_DB_HOST=host.docker.internal`。
